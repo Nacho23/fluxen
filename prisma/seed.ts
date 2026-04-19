@@ -1,10 +1,14 @@
 import "dotenv/config";
 
-import { PrismaPg } from "@prisma/adapter-pg";
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+import ws from "ws";
 
 import { parseAndValidatePostgresUrl } from "@/lib/db/validate-database-url";
+
+neonConfig.webSocketConstructor = ws;
 
 const raw = process.env.DATABASE_URL;
 if (!raw) {
@@ -12,7 +16,7 @@ if (!raw) {
 }
 
 const connectionString = parseAndValidatePostgresUrl(raw);
-const adapter = new PrismaPg(connectionString);
+const adapter = new PrismaNeon({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {

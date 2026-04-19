@@ -1,7 +1,12 @@
-import { PrismaPg } from "@prisma/adapter-pg";
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
+import ws from "ws";
 
 import { parseAndValidatePostgresUrl } from "@/lib/db/validate-database-url";
+
+/** En Node (local y Vercel serverless) el driver serverless de Neon usa WebSockets. */
+neonConfig.webSocketConstructor = ws;
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -13,7 +18,7 @@ function createClient() {
     throw new Error("DATABASE_URL no está definida");
   }
   const connectionString = parseAndValidatePostgresUrl(raw);
-  const adapter = new PrismaPg(connectionString);
+  const adapter = new PrismaNeon({ connectionString });
   return new PrismaClient({ adapter });
 }
 
