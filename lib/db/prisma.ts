@@ -1,15 +1,18 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
+import { parseAndValidatePostgresUrl } from "@/lib/db/validate-database-url";
+
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
 function createClient() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) {
     throw new Error("DATABASE_URL no está definida");
   }
+  const connectionString = parseAndValidatePostgresUrl(raw);
   const adapter = new PrismaPg(connectionString);
   return new PrismaClient({ adapter });
 }

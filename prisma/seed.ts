@@ -4,11 +4,14 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
+import { parseAndValidatePostgresUrl } from "@/lib/db/validate-database-url";
+
+const raw = process.env.DATABASE_URL;
+if (!raw) {
   throw new Error("DATABASE_URL no está definida para el seed");
 }
 
+const connectionString = parseAndValidatePostgresUrl(raw);
 const adapter = new PrismaPg(connectionString);
 const prisma = new PrismaClient({ adapter });
 
