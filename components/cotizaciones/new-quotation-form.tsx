@@ -16,7 +16,7 @@ import { SERVICE_ITEM_TYPE_LABEL } from "@/lib/data/service-item-type";
 import { previewLineTotal, previewQuotationTotals } from "@/lib/quotations/preview-totals";
 import { cn } from "@/lib/utils";
 import { createQuotation } from "@/server/actions/quotations";
-import { QuoteDiscountMode } from "@prisma/client";
+import { QuoteDiscountMode } from "@/lib/prisma/enums-public";
 
 const priceFmt = new Intl.NumberFormat("es-CL", {
   style: "currency",

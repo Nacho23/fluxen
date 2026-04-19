@@ -11,7 +11,7 @@ import {
   Settings,
   UserCog,
 } from "lucide-react";
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 
 import type { AppResource } from "@/lib/auth/company-permissions";
 import { snapshotHasPermission } from "@/lib/auth/company-permissions";

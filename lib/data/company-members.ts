@@ -1,4 +1,4 @@
-import { CompanyRole } from "@prisma/client";
+import type { CompanyRole } from "@/lib/prisma/enums-public";
 
 import { prisma } from "@/lib/db/prisma";
 

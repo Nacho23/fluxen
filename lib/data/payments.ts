@@ -1,4 +1,6 @@
-import type { PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+import type { PaymentMethod, PaymentStatus } from "@/lib/prisma/enums-public";
 
 import { prisma } from "@/lib/db/prisma";
 

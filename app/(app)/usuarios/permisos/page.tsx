@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 
 import { CompanyPermissionsForm } from "@/components/usuarios/company-permissions-form";
 import { PageHeader } from "@/components/layout/page-header";

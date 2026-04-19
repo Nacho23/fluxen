@@ -1,4 +1,4 @@
-import type { AgendaEventSource } from "@prisma/client";
+import type { AgendaEventSource } from "@/lib/prisma/enums-public";
 
 export const AGENDA_SOURCE_LABEL: Record<AgendaEventSource, string> = {
   MANUAL: "Evento",

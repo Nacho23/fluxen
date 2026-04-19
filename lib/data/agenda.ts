@@ -1,4 +1,4 @@
-import type { AgendaAttendanceStatus, AgendaEventSource } from "@prisma/client";
+import type { AgendaAttendanceStatus, AgendaEventSource } from "@/lib/prisma/enums-public";
 
 import { prisma } from "@/lib/db/prisma";
 

@@ -1,4 +1,4 @@
-import type { AgendaEventSource } from "@prisma/client";
+import type { AgendaEventSource } from "@/lib/prisma/enums-public";
 
 import type { AgendaMergedRow } from "@/lib/data/agenda";
 

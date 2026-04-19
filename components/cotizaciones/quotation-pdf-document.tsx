@@ -1,5 +1,5 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
-import type { QuoteDiscountMode } from "@prisma/client";
+import type { QuoteDiscountMode } from "@/lib/prisma/enums-public";
 
 const styles = StyleSheet.create({
   page: {

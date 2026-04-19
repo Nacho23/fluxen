@@ -1,4 +1,4 @@
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 import {
   ChevronRight,
   File,

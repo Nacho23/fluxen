@@ -1,6 +1,6 @@
 "use client";
 
-import { ClientKind } from "@prisma/client";
+import { ClientKind } from "@/lib/prisma/enums-public";
 import { Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 

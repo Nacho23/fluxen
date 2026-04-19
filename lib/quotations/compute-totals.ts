@@ -1,4 +1,6 @@
-import { Prisma, QuoteDiscountMode } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+import type { QuoteDiscountMode } from "@/lib/prisma/enums-public";
 
 export function roundMoney(d: Prisma.Decimal): Prisma.Decimal {
   return new Prisma.Decimal(d.toFixed(2));

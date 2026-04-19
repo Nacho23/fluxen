@@ -1,4 +1,4 @@
-import type { ClientKind } from "@prisma/client";
+import type { ClientKind } from "@/lib/prisma/enums-public";
 
 import { prisma } from "@/lib/db/prisma";
 

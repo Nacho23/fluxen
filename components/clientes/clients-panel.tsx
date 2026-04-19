@@ -1,6 +1,6 @@
 "use client";
 
-import { ClientKind } from "@prisma/client";
+import { ClientKind } from "@/lib/prisma/enums-public";
 import { Loader2, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

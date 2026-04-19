@@ -1,4 +1,4 @@
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 
 /** Datos de política necesarios para comprobar acciones (en cliente o servidor). */
 export type DocumentPolicy = {

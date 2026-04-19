@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
-import { PaymentMethod, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+import { PaymentMethod } from "@/lib/prisma/enums-public";
 import { z } from "zod";
 
 import { authOptions } from "@/lib/auth/options";

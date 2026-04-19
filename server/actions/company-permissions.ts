@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
-import { CompanyRole, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+import { CompanyRole } from "@/lib/prisma/enums-public";
 
 import { authOptions } from "@/lib/auth/options";
 import { savePayloadSchema } from "@/lib/auth/company-permissions";

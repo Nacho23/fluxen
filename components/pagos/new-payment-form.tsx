@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CompanyMemberOption } from "@/lib/data/payments";
 import { PAYMENT_METHOD_LABEL } from "@/lib/data/payment-method";
-import type { PaymentMethod } from "@prisma/client";
+import type { PaymentMethod } from "@/lib/prisma/enums-public";
 import { createPayment } from "@/server/actions/payments";
 
 const METHODS: PaymentMethod[] = ["CASH", "TRANSFER", "CHECK", "CARD", "OTHER"];

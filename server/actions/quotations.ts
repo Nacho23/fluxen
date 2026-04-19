@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
-import { Prisma, QuoteDiscountMode } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+import { QuoteDiscountMode } from "@/lib/prisma/enums-public";
 
 import type { QuotationStatus } from "@/lib/data/quotation-status";
 import type { ServiceItemType } from "@/lib/data/service-item-type";

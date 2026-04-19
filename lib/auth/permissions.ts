@@ -1,5 +1,5 @@
 import type { Session } from "next-auth";
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 
 /** Orden fijo en selects (no usar `Object.values(CompanyRole)` — puede variar entre entornos). */
 export const ORDERED_COMPANY_ROLES: readonly CompanyRole[] = [

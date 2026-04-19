@@ -1,4 +1,4 @@
-import type { QuoteDiscountMode } from "@prisma/client";
+import type { QuoteDiscountMode } from "@/lib/prisma/enums-public";
 
 export function previewLineTotal(unitPrice: number, quantity: number): number {
   return Math.round(unitPrice * quantity * 100) / 100;

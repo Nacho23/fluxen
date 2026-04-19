@@ -1,4 +1,4 @@
-import { AgendaEventSource, type QuotationStatus } from "@prisma/client";
+import { AgendaEventSource, type QuotationStatus } from "@/lib/prisma/enums-public";
 
 import { prisma } from "@/lib/db/prisma";
 

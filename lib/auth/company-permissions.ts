@@ -1,4 +1,4 @@
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 import { z } from "zod";
 
 /** Módulos del panel alineados con rutas y menú. */

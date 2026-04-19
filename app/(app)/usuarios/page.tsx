@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 import { redirect } from "next/navigation";
 
 import { CompanyMembersPanel } from "@/components/usuarios/company-members-panel";

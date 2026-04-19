@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
-import { ClientKind } from "@prisma/client";
+import { ClientKind } from "@/lib/prisma/enums-public";
 import { z } from "zod";
 
 import { authOptions } from "@/lib/auth/options";

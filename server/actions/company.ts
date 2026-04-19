@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 
-import { CompanyRole } from "@prisma/client";
+import { CompanyRole } from "@/lib/prisma/enums-public";
 
 import { authOptions } from "@/lib/auth/options";
 import { getActiveCompanyRole } from "@/lib/auth/permissions";

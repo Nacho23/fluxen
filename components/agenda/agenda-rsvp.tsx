@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ATTENDANCE_LABEL } from "@/lib/data/agenda-labels";
-import type { AgendaAttendanceStatus } from "@prisma/client";
+import type { AgendaAttendanceStatus } from "@/lib/prisma/enums-public";
 import { respondAgendaInvitation } from "@/server/actions/agenda";
 
 export function AgendaRsvp({
