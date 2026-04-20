@@ -38,16 +38,41 @@ export function CompanyPermissionsForm({
   const [pending, startTransition] = useTransition();
 
   function toggle(role: EditableCompanyRole, res: AppResource, action: PermissionAction) {
-    setMatrix((prev) => ({
-      ...prev,
-      [role]: {
-        ...prev[role],
-        [res]: {
-          ...prev[role][res],
-          [action]: !prev[role][res][action],
+    setMatrix((prev) => {
+      const cell = { ...prev[role][res] } as CrudFlags;
+      const nextOn = !cell[action];
+      cell[action] = nextOn;
+      if (res === "pagos") {
+        if (action === "read" && !nextOn) {
+          cell.readAll = false;
+        }
+        if (action === "read" && nextOn && cell.readAll === undefined) {
+          cell.readAll = true;
+        }
+      }
+      return {
+        ...prev,
+        [role]: {
+          ...prev[role],
+          [res]: cell,
         },
-      },
-    }));
+      };
+    });
+  }
+
+  function togglePagosReadAll(role: EditableCompanyRole) {
+    setMatrix((prev) => {
+      const pagos = { ...prev[role].pagos } as CrudFlags;
+      if (!pagos.read) return prev;
+      const cur = pagos.readAll !== false;
+      return {
+        ...prev,
+        [role]: {
+          ...prev[role],
+          pagos: { ...pagos, readAll: !cur },
+        },
+      };
+    });
   }
 
   function onSubmit(e: React.FormEvent) {
@@ -117,6 +142,27 @@ export function CompanyPermissionsForm({
                           </label>
                         );
                       })}
+                      {res === "pagos" ? (
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-start gap-2 rounded-md px-1 py-0.5 transition-colors",
+                            matrix[role].pagos.read && matrix[role].pagos.readAll !== false
+                              ? "bg-primary/10"
+                              : "hover:bg-muted/60",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={matrix[role].pagos.read && matrix[role].pagos.readAll !== false}
+                            disabled={pending || !matrix[role].pagos.read}
+                            onChange={() => togglePagosReadAll(role)}
+                            className="border-input mt-0.5 size-3.5 shrink-0 rounded"
+                          />
+                          <span className="text-muted-foreground leading-snug">
+                            Ver todos los pagos de la empresa
+                          </span>
+                        </label>
+                      ) : null}
                     </div>
                   </td>
                 ))}

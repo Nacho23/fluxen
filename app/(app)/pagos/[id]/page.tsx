@@ -6,7 +6,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SignPaymentButton } from "@/components/pagos/sign-payment-button";
 import { Button } from "@/components/ui/button";
 import { authOptions } from "@/lib/auth/options";
-import { sessionHasPermission } from "@/lib/auth/check-permission";
+import {
+  sessionHasPermission,
+  sessionPaymentsReadAll,
+} from "@/lib/auth/check-permission";
 import { PAYMENT_METHOD_LABEL } from "@/lib/data/payment-method";
 import { PAYMENT_STATUS_LABEL } from "@/lib/data/payment-status";
 import { getPaymentForCompany } from "@/lib/data/payments";
@@ -34,10 +37,18 @@ export default async function PagoDetallePage({ params }: Props) {
     notFound();
   }
 
-  const canReadPagos = await sessionHasPermission(session, "pagos", "read");
   const isBeneficiary = payment.workerUserId === userId;
-  if (!canReadPagos && !isBeneficiary) {
-    redirect("/pagos");
+  const isRecorder = payment.recordedByUserId === userId;
+  const canReadPagos = await sessionHasPermission(session, "pagos", "read");
+  const viewAllPayments = sessionPaymentsReadAll(session);
+
+  if (!isBeneficiary) {
+    if (!canReadPagos) {
+      redirect("/pagos");
+    }
+    if (!viewAllPayments && !isRecorder) {
+      redirect("/pagos");
+    }
   }
 
   const isRegistrar = await sessionHasPermission(session, "pagos", "create");

@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { CompanyRole } from "@/lib/prisma/enums-public";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { authOptions } from "@/lib/auth/options";
-import { requirePermission, sessionHasPermission } from "@/lib/auth/check-permission";
-import { getActiveCompanyRole } from "@/lib/auth/permissions";
+import {
+  requirePermission,
+  sessionHasPermission,
+  sessionPaymentsReadAll,
+} from "@/lib/auth/check-permission";
 import { PAYMENT_METHOD_LABEL } from "@/lib/data/payment-method";
 import { PAYMENT_STATUS_LABEL } from "@/lib/data/payment-status";
 import {
   listPaymentsForCompany,
-  listPaymentsForWorker,
+  listPaymentsVisibleToUser,
 } from "@/lib/data/payments";
 
 const priceFmt = new Intl.NumberFormat("es-CL", {
@@ -24,7 +26,6 @@ const priceFmt = new Intl.NumberFormat("es-CL", {
 
 export default async function PagosPage() {
   const session = await getServerSession(authOptions);
-  const role = getActiveCompanyRole(session);
   const userId = session?.user?.id;
 
   if (!session?.activeCompanyId || !userId) {
@@ -34,11 +35,11 @@ export default async function PagosPage() {
 
   const companyId = session.activeCompanyId;
   const isRegistrar = await sessionHasPermission(session, "pagos", "create");
-  const isWorkerView = role === CompanyRole.FIELD;
+  const viewAllPayments = sessionPaymentsReadAll(session);
 
-  const rows = isWorkerView
-    ? await listPaymentsForWorker(companyId, userId)
-    : await listPaymentsForCompany(companyId);
+  const rows = viewAllPayments
+    ? await listPaymentsForCompany(companyId)
+    : await listPaymentsVisibleToUser(companyId, userId);
 
   return (
     <div className="space-y-8">
@@ -46,9 +47,9 @@ export default async function PagosPage() {
         <PageHeader
           title="Pagos"
           description={
-            isWorkerView
-              ? "Pagos registrados a tu nombre. Confirma con firma cuando corresponda."
-              : "Registra pagos a trabajadores de la empresa; ellos podrán verlos y confirmar recepción."
+            viewAllPayments
+              ? "Registra pagos a trabajadores de la empresa; ellos podrán verlos y confirmar recepción."
+              : "Solo ves pagos donde figuras como trabajador o que tú registraste. Confirma con firma cuando corresponda."
           }
         />
         {isRegistrar ? (
@@ -63,7 +64,7 @@ export default async function PagosPage() {
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Fecha registro</th>
-              {!isWorkerView ? (
+              {viewAllPayments ? (
                 <th className="hidden py-3 font-medium lg:table-cell">Trabajador</th>
               ) : null}
               <th className="hidden py-3 font-medium md:table-cell">Forma de pago</th>
@@ -76,12 +77,12 @@ export default async function PagosPage() {
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={isWorkerView ? 5 : 6}
+                  colSpan={viewAllPayments ? 6 : 5}
                   className="text-muted-foreground px-4 py-10 text-center"
                 >
-                  {isWorkerView
-                    ? "Aún no hay pagos registrados a tu nombre."
-                    : "Aún no hay pagos registrados."}{" "}
+                  {viewAllPayments
+                    ? "Aún no hay pagos registrados."
+                    : "Aún no hay pagos donde seas trabajador o hayas registrado el pago."}{" "}
                   {isRegistrar ? (
                     <>
                       <Link href="/pagos/nueva" className="text-primary font-medium underline">
@@ -102,7 +103,7 @@ export default async function PagosPage() {
                       year: "numeric",
                     }).format(r.createdAt)}
                   </td>
-                  {!isWorkerView ? (
+                  {viewAllPayments ? (
                     <td className="text-foreground hidden py-3 lg:table-cell">
                       <div className="font-medium">{r.worker.name}</div>
                       <div className="text-muted-foreground text-xs">{r.worker.email}</div>

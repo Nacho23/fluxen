@@ -1,6 +1,8 @@
 /**
- * Contraseña inicial para usuarios creados al añadirlos a una empresa:
- * parte local del correo + "1234" (ej. admin@mail.com → admin1234).
+ * @deprecated Las invitaciones de empresa usan {@link generateSecureInvitePassword}.
+ * Se mantiene por compatibilidad si algún script externo lo importaba.
+ *
+ * Contraseña débil basada en el correo (solo referencia histórica).
  */
 export function defaultPasswordFromEmail(email: string): string {
   const at = email.indexOf("@");

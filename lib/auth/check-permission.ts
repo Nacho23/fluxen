@@ -3,9 +3,16 @@ import { CompanyRole } from "@/lib/prisma/enums-public";
 import { redirect } from "next/navigation";
 
 import type { AppResource, PermissionAction } from "@/lib/auth/company-permissions";
-import { roleHasPermission } from "@/lib/auth/company-permissions";
+import { PAGOS_READ_ALL_KEY, roleHasPermission } from "@/lib/auth/company-permissions";
 import { getMergedPermissionMatrix } from "@/lib/data/company-permission-matrix";
 import { getActiveCompanyRole } from "@/lib/auth/permissions";
+
+/** Ver listado/detalle de todos los pagos de la empresa (matriz `pagos.readAll`). */
+export function sessionPaymentsReadAll(session: Session | null): boolean {
+  const role = getActiveCompanyRole(session);
+  if (role === CompanyRole.OWNER) return true;
+  return session?.permissions?.[PAGOS_READ_ALL_KEY] === true;
+}
 
 export async function sessionHasPermission(
   session: Session | null,

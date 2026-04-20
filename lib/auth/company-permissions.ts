@@ -24,6 +24,11 @@ export type CrudFlags = {
   create: boolean;
   update: boolean;
   delete: boolean;
+  /**
+   * Solo aplica a `pagos` con `read`: si es `false`, el usuario solo ve pagos donde es trabajador
+   * o quien los registró; si es `true`, ve todos los de la empresa.
+   */
+  readAll?: boolean;
 };
 
 /** Matriz por rol. OWNER no se persiste: siempre acceso total en runtime. */
@@ -64,7 +69,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       cotizaciones: F(),
       agenda: F(),
       ordenes: F(),
-      pagos: F(),
+      pagos: { ...F(), readAll: true },
       documentos: F(),
       configuracion: R(),
     },
@@ -76,7 +81,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       cotizaciones: F(),
       agenda: F(),
       ordenes: F(),
-      pagos: F(),
+      pagos: { ...F(), readAll: true },
       documentos: F(),
       configuracion: R(),
     },
@@ -88,7 +93,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       cotizaciones: Z(),
       agenda: R(),
       ordenes: R(),
-      pagos: R(),
+      pagos: { ...R(), readAll: false },
       documentos: R(),
       configuracion: Z(),
     },
@@ -102,6 +107,7 @@ const crudSchema = z.object({
   create: z.boolean(),
   update: z.boolean(),
   delete: z.boolean(),
+  readAll: z.boolean().optional(),
 });
 
 const storedRolesSchema = z.object({
@@ -132,8 +138,22 @@ export function mergeMatrixWithDefaults(
   return out;
 }
 
+/** Clave en el snapshot JWT: ver todos los pagos de la empresa (vs. solo propios / registrados por mí). */
+export const PAGOS_READ_ALL_KEY = "pagos:readAll" as const;
+
 export function permissionKey(resource: AppResource, action: PermissionAction): string {
   return `${resource}:${action}`;
+}
+
+/**
+ * Si el rol puede listar/ver todos los pagos. Sin `readAll` en datos antiguos: FIELD → solo propios;
+ * el resto con `read` se asume listado completo (comportamiento previo).
+ */
+export function resolvePagosReadAll(flags: CrudFlags, role: CompanyRole): boolean {
+  if (!flags.read) return false;
+  if (typeof flags.readAll === "boolean") return flags.readAll;
+  if (role === CompanyRole.FIELD) return false;
+  return true;
 }
 
 export function roleHasPermission(
@@ -158,6 +178,10 @@ export function flattenRoleToSnapshot(
       out[permissionKey(res, a)] = roleHasPermission(matrix, role, res, a);
     }
   }
+  out[PAGOS_READ_ALL_KEY] =
+    role === CompanyRole.OWNER
+      ? true
+      : resolvePagosReadAll(matrix[role].pagos, role);
   return out;
 }
 

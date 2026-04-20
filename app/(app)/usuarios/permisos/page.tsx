@@ -28,7 +28,7 @@ export default async function UsuariosPermisosPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           title="Permisos por rol"
-          description="Controla acceso a cada módulo: ver listados, crear registros, editar y eliminar. El propietario no aparece aquí porque siempre tiene todos los permisos."
+          description="Controla acceso a cada módulo: ver listados, crear registros, editar y eliminar. En Pagos puedes además marcar si el rol ve todos los pagos de la empresa o solo los propios (como trabajador o los que registró). El propietario no aparece aquí porque siempre tiene todos los permisos."
         />
         <Button variant="outline" asChild className="w-fit shrink-0">
           <Link href="/usuarios">Volver a usuarios</Link>

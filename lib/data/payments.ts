@@ -55,12 +55,18 @@ export async function listPaymentsForCompany(companyId: string): Promise<Payment
   return rows.map(mapPaymentListRow);
 }
 
-export async function listPaymentsForWorker(
+/**
+ * Pagos visibles para un usuario sin permiso `pagos.readAll`: donde es trabajador o quien lo registró.
+ */
+export async function listPaymentsVisibleToUser(
   companyId: string,
-  workerUserId: string,
+  userId: string,
 ): Promise<PaymentListRow[]> {
   const rows = await prisma.payment.findMany({
-    where: { companyId, workerUserId },
+    where: {
+      companyId,
+      OR: [{ workerUserId: userId }, { recordedByUserId: userId }],
+    },
     orderBy: { createdAt: "desc" },
     select: paymentListSelect,
     take: 200,

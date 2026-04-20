@@ -8,10 +8,15 @@ import { Prisma } from "@prisma/client";
 import { CompanyRole } from "@/lib/prisma/enums-public";
 import { z } from "zod";
 
-import { defaultPasswordFromEmail } from "@/lib/auth/default-password";
 import { authOptions } from "@/lib/auth/options";
 import { sessionHasPermission } from "@/lib/auth/check-permission";
-import { getActiveCompanyRole } from "@/lib/auth/permissions";
+import { COMPANY_ROLE_LABEL, getActiveCompanyRole } from "@/lib/auth/permissions";
+import { generateSecureInvitePassword } from "@/lib/auth/invite-password";
+import {
+  buildWelcomeUserEmailContent,
+  buildWelcomeUserLoginUrl,
+} from "@/lib/email/welcome-user-email";
+import { sendTransactionalEmail } from "@/lib/email/resend-send";
 import { prisma } from "@/lib/db/prisma";
 import { parseInviteProfileExtras, parseProfileFormData } from "@/lib/user-profile/parse-profile-form-data";
 
@@ -75,7 +80,7 @@ export async function addCompanyMember(
   formData: FormData,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const { companyId, actorRole } = await requireUsuariosAction("create");
+    const { companyId, actorRole, session } = await requireUsuariosAction("create");
 
     const parsed = addSchema.safeParse({
       email: formData.get("email"),
@@ -98,10 +103,13 @@ export async function addCompanyMember(
     const nameForNew =
       ex.name.trim() || email.split("@")[0] || "Usuario";
 
-    await prisma.$transaction(async (tx) => {
+    const txResult = await prisma.$transaction(async (tx) => {
       let user = await tx.user.findUnique({ where: { email } });
+      let plainPassword: string | null = null;
+
       if (!user) {
-        const hash = await bcrypt.hash(defaultPasswordFromEmail(email), 10);
+        plainPassword = generateSecureInvitePassword();
+        const hash = await bcrypt.hash(plainPassword, 10);
         try {
           user = await tx.user.create({
             data: {
@@ -122,11 +130,13 @@ export async function addCompanyMember(
             e.code === "P2002"
           ) {
             user = await tx.user.findUnique({ where: { email } });
+            plainPassword = null;
           } else {
             throw e;
           }
         }
       }
+
       if (!user) {
         throw new Error("No se pudo crear ni encontrar el usuario");
       }
@@ -145,9 +155,58 @@ export async function addCompanyMember(
           role: targetRole,
         },
       });
+
+      return { userId: user.id, plainPassword };
     });
 
-    // TODO: enviar correo de invitación con enlace o credenciales cuando haya proveedor SMTP.
+    if (txResult.plainPassword) {
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { name: true },
+      });
+      if (!company) {
+        await prisma.$transaction(async (tx) => {
+          await tx.companyMember.deleteMany({
+            where: { userId: txResult.userId, companyId },
+          });
+          await tx.user.delete({ where: { id: txResult.userId } });
+        });
+        return {
+          ok: false,
+          error: "No se encontró la empresa para enviar el correo de bienvenida.",
+        };
+      }
+
+      const loginUrl = buildWelcomeUserLoginUrl();
+      const { subject, html } = buildWelcomeUserEmailContent({
+        displayName: nameForNew,
+        userEmail: email,
+        plainPassword: txResult.plainPassword,
+        companyName: company.name,
+        roleLabel: COMPANY_ROLE_LABEL[targetRole],
+        loginUrl,
+      });
+      const inviterEmail = session.user?.email?.trim();
+      const sent = await sendTransactionalEmail({
+        to: email,
+        subject,
+        html,
+        ...(inviterEmail ? { replyTo: inviterEmail } : {}),
+      });
+
+      if (!sent.ok) {
+        await prisma.$transaction(async (tx) => {
+          await tx.companyMember.deleteMany({
+            where: { userId: txResult.userId, companyId },
+          });
+          await tx.user.delete({ where: { id: txResult.userId } });
+        });
+        return {
+          ok: false,
+          error: `No se pudo enviar el correo de bienvenida (${sent.error}). El usuario no se guardó; revisa Resend e intenta de nuevo.`,
+        };
+      }
+    }
 
     revalidatePath("/usuarios");
     revalidatePath("/", "layout");

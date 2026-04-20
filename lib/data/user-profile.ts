@@ -10,6 +10,8 @@ export type UserProfileRow = {
   bankName: string | null;
   bankAccountType: string | null;
   bankAccountNumber: string | null;
+  /** Si existe hash de contraseña en BD (login por credenciales). */
+  hasPassword: boolean;
 };
 
 export async function getUserProfileById(userId: string): Promise<UserProfileRow | null> {
@@ -25,7 +27,13 @@ export async function getUserProfileById(userId: string): Promise<UserProfileRow
       bankName: true,
       bankAccountType: true,
       bankAccountNumber: true,
+      password: true,
     },
   });
-  return u;
+  if (!u) return null;
+  const { password, ...rest } = u;
+  return {
+    ...rest,
+    hasPassword: typeof password === "string" && password.length > 0,
+  };
 }
