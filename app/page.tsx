@@ -2,10 +2,10 @@ import Link from "next/link";
 import {
   ArrowRight,
   Banknote,
-  Calendar,
   ClipboardList,
   Contact,
   FileText,
+  FolderOpen,
   Shield,
   Sparkles,
   UserCog,
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 export const metadata = {
   title: "Inicio",
   description:
-    "Fluxen organiza clientes, cotizaciones, agenda, órdenes y cobros para empresas de servicios técnicos.",
+    "Fluxen organiza clientes, cotizaciones, documentos, órdenes y registro de pagos para empresas de servicios técnicos.",
 };
 
 const features = [
@@ -35,10 +35,10 @@ const features = [
       "Propuestas ordenadas y seguimiento del estado para cerrar ventas con más tranquilidad.",
   },
   {
-    icon: Calendar,
-    title: "Agenda compartida",
+    icon: FolderOpen,
+    title: "Gestor de documentos",
     description:
-      "Visitas y compromisos visibles para el equipo, sin solapamientos ni citas perdidas.",
+      "Carpetas y archivos por empresa para que el equipo encuentre contratos, fotos y PDFs sin perderlos en el chat.",
   },
   {
     icon: ClipboardList,
@@ -48,9 +48,9 @@ const features = [
   },
   {
     icon: Banknote,
-    title: "Pagos y cobros",
+    title: "Registro de pagos",
     description:
-      "Seguimiento financiero alineado con el trabajo hecho, para cobrar más rápido.",
+      "Registra y confirma pagos al equipo; el dinero no circula por la plataforma: solo queda documentado quién pagó, cuánto y cuándo.",
   },
   {
     icon: UserCog,
@@ -169,12 +169,12 @@ export default function HomePage() {
 
             <h1 className="text-foreground mx-auto max-w-4xl text-balance text-4xl font-semibold tracking-tight md:text-5xl md:leading-[1.1] lg:text-[3.15rem]">
               <span className="text-gradient-hero">Operación ordenada</span>
-              <span className="mt-2 block">de la solicitud al cobro</span>
+              <span className="mt-2 block">de la solicitud al registro del trabajo</span>
             </h1>
 
             <p className="text-muted-foreground mx-auto mt-8 max-w-2xl text-pretty text-base leading-relaxed md:text-lg">
               Una plataforma para empresas de mantenimiento y servicio en terreno: clientes,
-              cotizaciones, agenda, órdenes y pagos en un solo lugar. Menos caos en chats y
+              cotizaciones, documentos, órdenes y registro de pagos en un solo lugar. Menos caos en chats y
               planillas, más claridad para tu equipo.
             </p>
 
@@ -226,7 +226,7 @@ export default function HomePage() {
               </h2>
               <p className="text-muted-foreground mt-3 text-pretty text-sm leading-relaxed md:text-base">
                 Diseñado para cuadrillas, talleres y empresas que viven de visitas, presupuestos
-                y cobros alineados al trabajo realizado.
+                y registro de pagos alineado al trabajo realizado.
               </p>
             </div>
 
@@ -309,7 +309,7 @@ export default function HomePage() {
               ¿Listo para ordenar tu operación?
             </h2>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed md:text-base">
-              Entra con tu equipo y lleva clientes, cotizaciones y órdenes al mismo ritmo.
+              Entra con tu equipo y lleva clientes, cotizaciones, documentos y órdenes al mismo ritmo.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-11 rounded-xl px-8 shadow-lg shadow-primary/25" asChild>
