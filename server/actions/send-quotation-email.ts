@@ -5,11 +5,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
 import { sessionHasPermission } from "@/lib/auth/check-permission";
 import { getQuotationForCompany } from "@/lib/data/quotations";
+import { buildQuotationEmailContent } from "@/lib/email/quotation-email";
+import { sendTransactionalEmail } from "@/lib/email/resend-send";
+import {
+  quotationPdfAttachmentFilename,
+  renderQuotationPdfBuffer,
+} from "@/lib/quotations/render-quotation-pdf";
 
-/**
- * Envío de cotización por correo al cliente.
- * Pendiente: integrar proveedor (Resend, SMTP, etc.) y plantilla HTML/PDF adjunto.
- */
+/** Envío de cotización por correo al cliente (Resend). */
 export async function sendQuotationEmail(
   quotationId: string,
 ): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
@@ -33,9 +36,37 @@ export async function sendQuotationEmail(
     return { ok: false, error: "Esta cotización no tiene correo del cliente. Añádelo en la ficha del cliente." };
   }
 
-  // TODO: enviar correo real a `to` con enlace o PDF adjunto.
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await renderQuotationPdfBuffer(q);
+  } catch {
+    return {
+      ok: false,
+      error: "No se pudo generar el PDF de la cotización. Intenta de nuevo.",
+    };
+  }
+
+  const { subject, html } = buildQuotationEmailContent(q);
+  const sessionEmail = session.user.email?.trim();
+  const sent = await sendTransactionalEmail({
+    to,
+    subject,
+    html,
+    attachments: [
+      {
+        filename: quotationPdfAttachmentFilename(q),
+        content: pdfBuffer,
+      },
+    ],
+    ...(sessionEmail ? { replyTo: sessionEmail } : {}),
+  });
+
+  if (!sent.ok) {
+    return { ok: false, error: sent.error };
+  }
+
   return {
     ok: true,
-    message: `Listo para enviar a ${to} cuando conectes el proveedor de correo.`,
+    message: `Correo enviado a ${to} con PDF adjunto.`,
   };
 }
