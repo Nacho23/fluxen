@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
 import { sessionHasPermission } from "@/lib/auth/check-permission";
 import { getQuotationForCompany } from "@/lib/data/quotations";
+import { prisma } from "@/lib/db/prisma";
 import { buildQuotationEmailContent } from "@/lib/email/quotation-email";
 import { sendTransactionalEmail } from "@/lib/email/resend-send";
 import {
@@ -64,6 +65,14 @@ export async function sendQuotationEmail(
   if (!sent.ok) {
     return { ok: false, error: sent.error };
   }
+
+  await prisma.quotation.update({
+    where: { id: quotationId },
+    data: {
+      emailSent: true,
+      emailSentAt: new Date(),
+    },
+  });
 
   return {
     ok: true,

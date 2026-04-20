@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
@@ -8,8 +9,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { authOptions } from "@/lib/auth/options";
 import { requirePermission, sessionHasPermission } from "@/lib/auth/check-permission";
-import { formatDateLongUtc } from "@/lib/dates/format-utc";
+import { formatDateLongUtc, formatDateTimeShortLocal } from "@/lib/dates/format-utc";
 import { findAgendaEventIdForQuotation } from "@/lib/data/agenda";
+import { isPendingClientConfirmationAfterEmail } from "@/lib/data/quotation-follow-up";
 import {
   getQuotationForCompany,
   type QuotationDetailLine,
@@ -62,13 +64,20 @@ export default async function CotizacionDetallePage({
       : null;
 
   const pdfUrl = `/api/quotations/${q.id}/pdf`;
+  const statusLabel = QUOTATION_STATUS_LABEL[q.status as QuotationStatus];
+  const pendingAfterEmail = isPendingClientConfirmationAfterEmail({
+    emailSent: q.emailSent,
+    status: q.status as QuotationStatus,
+  });
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           title={q.quoteNumber}
-          description={`${q.company.name} · ${QUOTATION_STATUS_LABEL[q.status as QuotationStatus]}`}
+          description={`${q.company.name} · ${statusLabel}${
+            q.emailSent ? " · Correo al cliente enviado" : ""
+          }${pendingAfterEmail ? " · Pendiente confirmación del cliente" : ""}`}
         />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" asChild>
@@ -81,6 +90,22 @@ export default async function CotizacionDetallePage({
           </Button>
         </div>
       </div>
+
+      {pendingAfterEmail ? (
+        <div
+          className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/35 dark:text-amber-100 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm"
+          role="status"
+        >
+          <Mail className="text-amber-700 dark:text-amber-300 mt-0.5 size-5 shrink-0" aria-hidden />
+          <div>
+            <p className="font-medium">Pendiente de confirmación del cliente</p>
+            <p className="text-amber-900/90 dark:text-amber-100/90 mt-1 text-xs leading-relaxed">
+              La cotización ya se envió por correo. Cuando el cliente confirme o rechace por el canal que uses,
+              actualiza el estado en el resumen de esta página.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="border-border bg-card/60 space-y-4 rounded-xl border p-5 shadow-sm">
@@ -111,6 +136,23 @@ export default async function CotizacionDetallePage({
                 <dd className="text-right">{q.clientPhone}</dd>
               </div>
             ) : null}
+            <div className="flex justify-between gap-4 border-t pt-2">
+              <dt className="text-muted-foreground">Correo al cliente</dt>
+              <dd className="text-right text-sm">
+                {q.emailSent ? (
+                  <span className="block">
+                    <span className="text-foreground font-medium">Enviado</span>
+                    {q.emailSentAt ? (
+                      <span className="text-muted-foreground mt-0.5 block text-xs">
+                        {formatDateTimeShortLocal(new Date(q.emailSentAt))}
+                      </span>
+                    ) : null}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">No enviado</span>
+                )}
+              </dd>
+            </div>
             <div className="flex justify-between gap-4 border-t pt-2">
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd className="tabular-nums">{priceFmt.format(Number(q.subtotal))}</dd>
@@ -147,7 +189,12 @@ export default async function CotizacionDetallePage({
 
           <div className="border-border border-t pt-4">
             <h3 className="text-foreground mb-2 text-sm font-semibold">Envío por correo</h3>
-            <SendQuotationEmailButton quotationId={q.id} clientEmail={q.clientEmail ?? null} />
+            <SendQuotationEmailButton
+              quotationId={q.id}
+              clientEmail={q.clientEmail ?? null}
+              emailSent={q.emailSent}
+              emailSentAt={q.emailSentAt}
+            />
           </div>
         </div>
 

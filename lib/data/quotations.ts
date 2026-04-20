@@ -10,6 +10,8 @@ export type QuotationListRow = {
   clientName: string;
   total: string;
   status: QuotationStatus;
+  emailSent: boolean;
+  emailSentAt: Date | null;
   createdAt: Date;
 };
 
@@ -26,6 +28,8 @@ export async function listQuotationsForCompany(
       clientName: true,
       total: true,
       status: true,
+      emailSent: true,
+      emailSentAt: true,
       createdAt: true,
     },
     take: 100,

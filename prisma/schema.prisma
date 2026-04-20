@@ -235,6 +235,10 @@ model Quotation {
   discountAmount Decimal           @db.Decimal(12, 2)
   total          Decimal           @db.Decimal(12, 2)
   status         QuotationStatus   @default(DRAFT)
+  /// true cuando el PDF se envió por correo al menos una vez (Resend).
+  emailSent      Boolean           @default(false)
+  /// Fecha/hora del último envío por correo; null si nunca se envió.
+  emailSentAt    DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)

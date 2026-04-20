@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
@@ -6,8 +7,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { authOptions } from "@/lib/auth/options";
 import { requirePermission, sessionHasPermission } from "@/lib/auth/check-permission";
+import { isPendingClientConfirmationAfterEmail } from "@/lib/data/quotation-follow-up";
 import { listQuotationsForCompany } from "@/lib/data/quotations";
-import { QUOTATION_STATUS_LABEL } from "@/lib/data/quotation-status";
+import {
+  QUOTATION_STATUS_LABEL,
+  type QuotationStatus,
+} from "@/lib/data/quotation-status";
 
 const priceFmt = new Intl.NumberFormat("es-CL", {
   style: "currency",
@@ -85,9 +90,25 @@ export default async function CotizacionesPage() {
                     <div className="font-medium">{r.clientName}</div>
                   </td>
                   <td className="hidden py-3 lg:table-cell">
-                    <span className="bg-muted text-muted-foreground inline-flex rounded-full px-2 py-0.5 text-xs">
-                      {QUOTATION_STATUS_LABEL[r.status]}
-                    </span>
+                    <div className="flex max-w-[200px] flex-col gap-1">
+                      <span className="bg-muted text-muted-foreground inline-flex w-fit rounded-full px-2 py-0.5 text-xs">
+                        {QUOTATION_STATUS_LABEL[r.status]}
+                      </span>
+                      {r.emailSent ? (
+                        <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                          <Mail className="size-3 shrink-0 opacity-70" aria-hidden />
+                          Correo enviado
+                        </span>
+                      ) : null}
+                      {isPendingClientConfirmationAfterEmail({
+                        emailSent: r.emailSent,
+                        status: r.status as QuotationStatus,
+                      }) ? (
+                        <span className="text-amber-700 dark:text-amber-400 text-xs font-medium">
+                          Pendiente confirmación
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="text-foreground px-4 py-3 tabular-nums">{priceFmt.format(Number(r.total))}</td>
                   <td className="px-2 py-3">

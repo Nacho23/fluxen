@@ -1,18 +1,25 @@
 "use client";
 
 import { Loader2, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
-import { sendQuotationEmail } from "@/server/actions/send-quotation-email";
+import { formatDateTimeShortLocal } from "@/lib/dates/format-utc";
+import { sendQuotationEmail } from "@/server/actions/send-quotation-email"; 
 
 export function SendQuotationEmailButton({
   quotationId,
   clientEmail,
+  emailSent,
+  emailSentAt,
 }: Readonly<{
   quotationId: string;
   clientEmail: string | null;
+  emailSent: boolean;
+  emailSentAt: Date | null;
 }>) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,13 +34,24 @@ export function SendQuotationEmailButton({
         return;
       }
       setMessage(res.message);
+      router.refresh();
     });
   }
 
   const canSend = Boolean(clientEmail?.trim());
+  const lastSentLabel =
+    emailSent && emailSentAt
+      ? formatDateTimeShortLocal(new Date(emailSentAt))
+      : null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {emailSent && lastSentLabel ? (
+        <p className="text-foreground text-sm">
+          <span className="text-muted-foreground">Último envío por correo:</span>{" "}
+          <span className="font-medium">{lastSentLabel}</span>
+        </p>
+      ) : null}
       <Button
         type="button"
         variant="secondary"
@@ -47,7 +65,7 @@ export function SendQuotationEmailButton({
         ) : (
           <Mail className="size-4" aria-hidden />
         )}
-        Enviar cotización por correo
+        {emailSent ? "Reenviar cotización por correo" : "Enviar cotización por correo"}
       </Button>
       <p className="text-muted-foreground text-xs">
         {canSend ? (
