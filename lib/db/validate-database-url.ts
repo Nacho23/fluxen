@@ -13,7 +13,7 @@ export function parseAndValidatePostgresUrl(raw: string): string {
     url = new URL(connectionString);
   } catch {
     throw new Error(
-      "DATABASE_URL no es una URL válida. Si la contraseña tiene @, # u otros caracteres, usa la cadena que Neon copia tal cual o codifica la contraseña en la URL.",
+      "DATABASE_URL no es una URL válida. Si la contraseña tiene @, # u otros caracteres, codifícala en la URL o usa la cadena que te da tu proveedor (p. ej. Railway → Variables → DATABASE_URL).",
     );
   }
 
@@ -25,14 +25,14 @@ export function parseAndValidatePostgresUrl(raw: string): string {
   const host = url.hostname;
   if (!host) {
     throw new Error(
-      "DATABASE_URL no incluye el servidor (host). Copia la URI completa desde Neon (Connection string).",
+      "DATABASE_URL no incluye el servidor (host). Copia la URI completa de tu proveedor PostgreSQL (p. ej. Railway).",
     );
   }
 
   // Placeholder típico de ejemplos mal pegados
   if (host === "base") {
     throw new Error(
-      "El host de DATABASE_URL es «base»: no es un servidor real. Copia la URI completa desde Neon (Dashboard → tu proyecto → Connection details). Debe verse algo como ep-xxxx.region.aws.neon.tech, no la palabra «base».",
+      "El host de DATABASE_URL es «base»: suele ser un placeholder sin reemplazar o una URL cortada. Usa el hostname real que te da tu proveedor (p. ej. *.railway.app o el host público del servicio Postgres).",
     );
   }
 

@@ -1,23 +1,8 @@
 import "dotenv/config";
 
-import { neonConfig } from "@neondatabase/serverless";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-import ws from "ws";
 
-import { parseAndValidatePostgresUrl } from "@/lib/db/validate-database-url";
-
-neonConfig.webSocketConstructor = ws;
-
-const raw = process.env.DATABASE_URL;
-if (!raw) {
-  throw new Error("DATABASE_URL no está definida para el seed");
-}
-
-const connectionString = parseAndValidatePostgresUrl(raw);
-const adapter = new PrismaNeon({ connectionString });
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "@/lib/db/prisma";
 
 async function main() {
   const password = await bcrypt.hash("demo1234", 10);
