@@ -20,6 +20,8 @@ import {
 } from "@/lib/quotations/compute-totals";
 import { syncAgendaFromQuotationStatus } from "@/lib/agenda/sync-from-quotation";
 import { prisma } from "@/lib/db/prisma";
+import type { QuotationCustomFieldRow } from "@/lib/data/quotation-custom-fields-public";
+import { validateAndNormalizeCustomFieldValues } from "@/lib/quotations/custom-field-values";
 
 async function requireCotizacionAction(action: "create" | "update") {
   const session = await getServerSession(authOptions);
@@ -48,6 +50,7 @@ const createSchema = z.object({
   discountMode: z.nativeEnum(QuoteDiscountMode),
   discountValue: z.number().nonnegative().nullable().optional(),
   lines: z.array(lineSchema).min(1, "Añade al menos una línea"),
+  customFieldValues: z.record(z.string(), z.string()).optional(),
 });
 
 function parseItemType(v: ServiceItemType | undefined): ServiceItemType | null {
@@ -104,6 +107,27 @@ export async function createQuotation(
       });
       if (!client) {
         throw new Error("Cliente no encontrado o no pertenece a esta empresa");
+      }
+
+      const definitions = (await tx.quotationCustomField.findMany({
+        where: { companyId },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: {
+          id: true,
+          key: true,
+          label: true,
+          fieldType: true,
+          required: true,
+          sortOrder: true,
+        },
+      })) as QuotationCustomFieldRow[];
+
+      const customRes = validateAndNormalizeCustomFieldValues(
+        definitions,
+        parsed.data.customFieldValues,
+      );
+      if (!customRes.ok) {
+        throw new Error(customRes.error);
       }
 
       const company = await tx.company.update({
@@ -167,6 +191,7 @@ export async function createQuotation(
           discountAmount,
           total,
           status: "DRAFT",
+          customFieldValues: customRes.values as Prisma.InputJsonValue,
           lines: { create: lineCreates },
         },
         select: { id: true },

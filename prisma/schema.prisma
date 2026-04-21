@@ -35,6 +35,14 @@ enum QuoteDiscountMode {
   FIXED
 }
 
+/// Campos extra configurables por empresa en el formulario de cotización.
+enum QuotationCustomFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+}
+
 enum PaymentMethod {
   CASH
   TRANSFER
@@ -173,6 +181,7 @@ model Company {
   documentFolders CompanyDocumentFolder[]
   clients    CompanyClient[]
   agendaEvents AgendaEvent[]
+  quotationCustomFields QuotationCustomField[]
 }
 
 /// Cliente de la empresa (persona u organización); usado en cotizaciones y CRM.
@@ -239,6 +248,8 @@ model Quotation {
   emailSent      Boolean           @default(false)
   /// Fecha/hora del último envío por correo; null si nunca se envió.
   emailSentAt    DateTime?
+  /// Valores por id de `QuotationCustomField` (JSON objeto plano).
+  customFieldValues Json              @default("{}")
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -249,6 +260,24 @@ model Quotation {
   @@unique([companyId, quoteNumber])
   @@index([companyId])
   @@index([clientId])
+}
+
+/// Definición de campo personalizado por empresa (aparece al crear cotizaciones).
+model QuotationCustomField {
+  id         String                   @id @default(cuid())
+  companyId  String
+  /// Clave estable en exportaciones / integraciones (minúsculas, números, guión bajo).
+  key        String
+  label      String
+  fieldType  QuotationCustomFieldType @default(TEXT)
+  required   Boolean                  @default(false)
+  sortOrder  Int                      @default(0)
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+  company    Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, key])
+  @@index([companyId, sortOrder])
 }
 
 /// Líneas con snapshot: cambiar aquí no altera el catálogo Service.

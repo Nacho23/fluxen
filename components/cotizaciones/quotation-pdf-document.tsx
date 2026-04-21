@@ -133,6 +133,8 @@ export type QuotationPdfDocumentProps = {
   clientName: string;
   clientEmail: string | null;
   clientPhone: string | null;
+  /** Filas con valor distinto de vacío; omitir o dejar vacío si no aplica. */
+  customFieldRows?: { label: string; value: string }[];
   lines: QuotationPdfLine[];
   subtotal: string;
   discountMode: QuoteDiscountMode;
@@ -149,6 +151,7 @@ export function QuotationPdfPage({
   clientName,
   clientEmail,
   clientPhone,
+  customFieldRows,
   lines,
   subtotal,
   discountMode,
@@ -182,6 +185,18 @@ export function QuotationPdfPage({
           <Text style={styles.label}>Fecha del servicio</Text>
           <Text style={styles.value}>{serviceDateLabel}</Text>
         </View>
+
+        {customFieldRows && customFieldRows.length > 0 ? (
+          <>
+            <Text style={[styles.sectionLabel, { marginTop: 14 }]}>Información adicional</Text>
+            {customFieldRows.map((row, i) => (
+              <View key={i} style={styles.row} wrap={false}>
+                <Text style={styles.label}>{row.label}</Text>
+                <Text style={styles.value}>{row.value}</Text>
+              </View>
+            ))}
+          </>
+        ) : null}
 
         <View style={styles.tableHeader}>
           <Text style={[styles.th, styles.colDesc]}>Descripción</Text>

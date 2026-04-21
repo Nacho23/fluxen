@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { CLIENT_KIND_LABEL } from "@/lib/data/client-kind";
 import type { ClientRow } from "@/lib/data/company-clients";
 import type { ServiceRow } from "@/lib/data/company-services";
+import type { QuotationCustomFieldRow } from "@/lib/data/quotation-custom-fields-public";
 import { SERVICE_ITEM_TYPE_LABEL } from "@/lib/data/service-item-type";
 import { previewLineTotal, previewQuotationTotals } from "@/lib/quotations/preview-totals";
 import { cn } from "@/lib/utils";
@@ -84,10 +85,12 @@ export function NewQuotationForm({
   catalogServices,
   initialClients,
   canCreateClient,
+  customFields,
 }: Readonly<{
   catalogServices: ServiceRow[];
   initialClients: ClientRow[];
   canCreateClient: boolean;
+  customFields: QuotationCustomFieldRow[];
 }>) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -99,6 +102,10 @@ export function NewQuotationForm({
   const [discountMode, setDiscountMode] = useState<QuoteDiscountMode>("NONE");
   const [discountValue, setDiscountValue] = useState("");
   const [lines, setLines] = useState<DraftLine[]>(() => [createEmptyLine("draft-line-0")]);
+
+  const [customValues, setCustomValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(customFields.map((f) => [f.id, ""])),
+  );
 
   const [catalogPick, setCatalogPick] = useState("");
 
@@ -209,6 +216,13 @@ export function NewQuotationForm({
       discountMode,
       discountValue: dv,
       lines: parsedLines,
+      ...(customFields.length > 0
+        ? {
+            customFieldValues: Object.fromEntries(
+              customFields.map((f) => [f.id, customValues[f.id] ?? ""]),
+            ) as Record<string, string>,
+          }
+        : {}),
     };
 
     startTransition(async () => {
@@ -307,6 +321,64 @@ export function NewQuotationForm({
           </div>
         </div>
       </section>
+
+      {customFields.length > 0 ? (
+        <section className="border-border bg-card/60 max-w-3xl rounded-xl border p-5 shadow-sm">
+          <h2 className="text-foreground mb-4 text-sm font-semibold">Campos adicionales</h2>
+          <p className="text-muted-foreground mb-4 text-xs leading-relaxed">
+            Definidos en Cotizaciones → Campos personalizados. Los obligatorios deben completarse antes de
+            guardar.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {customFields.map((f) => (
+              <div
+                key={f.id}
+                className={f.fieldType === "TEXTAREA" ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"}
+              >
+                <Label htmlFor={`cf-${f.id}`}>
+                  {f.label}
+                  {f.required ? <span className="text-destructive"> *</span> : null}
+                </Label>
+                {f.fieldType === "TEXTAREA" ? (
+                  <textarea
+                    id={`cf-${f.id}`}
+                    required={f.required}
+                    rows={3}
+                    maxLength={5000}
+                    value={customValues[f.id] ?? ""}
+                    onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[4rem] w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                  />
+                ) : f.fieldType === "NUMBER" ? (
+                  <Input
+                    id={`cf-${f.id}`}
+                    inputMode="decimal"
+                    required={f.required}
+                    value={customValues[f.id] ?? ""}
+                    onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                  />
+                ) : f.fieldType === "DATE" ? (
+                  <Input
+                    id={`cf-${f.id}`}
+                    type="date"
+                    required={f.required}
+                    value={customValues[f.id] ?? ""}
+                    onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                  />
+                ) : (
+                  <Input
+                    id={`cf-${f.id}`}
+                    required={f.required}
+                    maxLength={500}
+                    value={customValues[f.id] ?? ""}
+                    onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="border-border bg-card/60 max-w-3xl rounded-xl border p-5 shadow-sm">
         <h2 className="text-foreground mb-4 text-sm font-semibold">Ítems</h2>

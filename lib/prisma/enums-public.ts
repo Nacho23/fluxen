@@ -25,6 +25,15 @@ export const QuoteDiscountMode = {
 } as const;
 export type QuoteDiscountMode = (typeof QuoteDiscountMode)[keyof typeof QuoteDiscountMode];
 
+export const QuotationCustomFieldType = {
+  TEXT: "TEXT",
+  TEXTAREA: "TEXTAREA",
+  NUMBER: "NUMBER",
+  DATE: "DATE",
+} as const;
+export type QuotationCustomFieldType =
+  (typeof QuotationCustomFieldType)[keyof typeof QuotationCustomFieldType];
+
 export const AgendaEventSource = {
   MANUAL: "MANUAL",
   QUOTATION: "QUOTATION",

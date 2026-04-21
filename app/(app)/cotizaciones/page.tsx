@@ -30,6 +30,7 @@ export default async function CotizacionesPage() {
   await requirePermission(session, "cotizaciones", "read");
 
   const canCreate = await sessionHasPermission(session, "cotizaciones", "create");
+  const canConfigureCustomFields = await sessionHasPermission(session, "campos_cotizacion", "read");
   const rows = await listQuotationsForCompany(session.activeCompanyId);
 
   return (
@@ -39,10 +40,19 @@ export default async function CotizacionesPage() {
           title="Cotizaciones"
           description="Número automático por empresa, líneas editables solo en el documento y vista previa en PDF."
         />
-        {canCreate ? (
-          <Button asChild className="w-fit shrink-0">
-            <Link href="/cotizaciones/nueva">Nueva cotización</Link>
-          </Button>
+        {canConfigureCustomFields || canCreate ? (
+          <div className="flex flex-wrap gap-2">
+            {canConfigureCustomFields ? (
+              <Button variant="outline" asChild className="w-fit shrink-0">
+                <Link href="/cotizaciones/campos">Campos personalizados</Link>
+              </Button>
+            ) : null}
+            {canCreate ? (
+              <Button asChild className="w-fit shrink-0">
+                <Link href="/cotizaciones/nueva">Nueva cotización</Link>
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

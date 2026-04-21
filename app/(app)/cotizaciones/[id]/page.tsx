@@ -12,10 +12,15 @@ import { requirePermission, sessionHasPermission } from "@/lib/auth/check-permis
 import { formatDateLongUtc, formatDateTimeShortLocal } from "@/lib/dates/format-utc";
 import { findAgendaEventIdForQuotation } from "@/lib/data/agenda";
 import { isPendingClientConfirmationAfterEmail } from "@/lib/data/quotation-follow-up";
+import { listQuotationCustomFieldsForCompany } from "@/lib/data/quotation-custom-fields";
 import {
   getQuotationForCompany,
   type QuotationDetailLine,
 } from "@/lib/data/quotations";
+import {
+  formatCustomFieldValueForDisplay,
+  parseStoredCustomFieldValues,
+} from "@/lib/quotations/custom-field-values";
 import {
   QUOTATION_STATUS_LABEL,
   type QuotationStatus,
@@ -57,6 +62,9 @@ export default async function CotizacionDetallePage({
   if (!q) {
     notFound();
   }
+
+  const customDefinitions = await listQuotationCustomFieldsForCompany(session.activeCompanyId);
+  const storedCustom = parseStoredCustomFieldValues(q.customFieldValues);
 
   const agendaEventId =
     q.status === "ACCEPTED" && canReadAgenda
@@ -134,6 +142,21 @@ export default async function CotizacionDetallePage({
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Teléfono</dt>
                 <dd className="text-right">{q.clientPhone}</dd>
+              </div>
+            ) : null}
+            {customDefinitions.length > 0 ? (
+              <div className="border-border space-y-2 border-t pt-3">
+                <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
+                  Campos adicionales
+                </p>
+                {customDefinitions.map((d) => (
+                  <div key={d.id} className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground shrink-0">{d.label}</span>
+                    <span className="text-right">
+                      {formatCustomFieldValueForDisplay(d.fieldType, storedCustom[d.id])}
+                    </span>
+                  </div>
+                ))}
               </div>
             ) : null}
             <div className="flex justify-between gap-4 border-t pt-2">

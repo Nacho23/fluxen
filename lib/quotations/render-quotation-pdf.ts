@@ -5,10 +5,15 @@ import {
   QuotationPdfPage,
   type QuotationPdfDocumentProps,
 } from "@/components/cotizaciones/quotation-pdf-document";
+import { listQuotationCustomFieldsForCompany } from "@/lib/data/quotation-custom-fields";
 import { SERVICE_ITEM_TYPE_LABEL } from "@/lib/data/service-item-type";
 import { formatDateLongUtc } from "@/lib/dates/format-utc";
 import type { QuotationDetail } from "@/lib/data/quotations";
 import type { ServiceItemType } from "@/lib/data/service-item-type";
+import {
+  formatCustomFieldValueForDisplay,
+  parseStoredCustomFieldValues,
+} from "@/lib/quotations/custom-field-values";
 
 const priceFmt = new Intl.NumberFormat("es-CL", {
   style: "currency",
@@ -46,7 +51,10 @@ function discountLabel(
   return "Descuento";
 }
 
-function quotationToPdfProps(q: QuotationDetail): QuotationPdfDocumentProps {
+function quotationToPdfProps(
+  q: QuotationDetail,
+  definitions: Awaited<ReturnType<typeof listQuotationCustomFieldsForCompany>>,
+): QuotationPdfDocumentProps {
   const serviceDateLabel = formatDateLongUtc(q.serviceDate);
   const lines = q.lines.map((line) => ({
     name: line.name,
@@ -57,6 +65,18 @@ function quotationToPdfProps(q: QuotationDetail): QuotationPdfDocumentProps {
     lineTotal: fmtMoney(line.lineTotal),
   }));
 
+  const stored = parseStoredCustomFieldValues(q.customFieldValues);
+  const customFieldRows =
+    definitions.length === 0
+      ? undefined
+      : definitions.flatMap((d) => {
+          const disp = formatCustomFieldValueForDisplay(d.fieldType, stored[d.id]);
+          if (disp === "—") return [];
+          return [{ label: d.label, value: disp }];
+        });
+  const customFieldSection =
+    customFieldRows && customFieldRows.length > 0 ? customFieldRows : undefined;
+
   return {
     companyName: q.company.name,
     quoteNumber: q.quoteNumber,
@@ -64,6 +84,7 @@ function quotationToPdfProps(q: QuotationDetail): QuotationPdfDocumentProps {
     clientName: q.clientName,
     clientEmail: q.clientEmail,
     clientPhone: q.clientPhone,
+    customFieldRows: customFieldSection,
     lines,
     subtotal: fmtMoney(q.subtotal),
     discountMode: q.discountMode,
@@ -77,7 +98,8 @@ function quotationToPdfProps(q: QuotationDetail): QuotationPdfDocumentProps {
 export async function renderQuotationPdfBuffer(
   q: QuotationDetail,
 ): Promise<Buffer> {
-  const pdfProps = quotationToPdfProps(q);
+  const definitions = await listQuotationCustomFieldsForCompany(q.companyId);
+  const pdfProps = quotationToPdfProps(q, definitions);
   const buffer = await renderToBuffer(
     createElement(Document, null, createElement(QuotationPdfPage, pdfProps)),
   );

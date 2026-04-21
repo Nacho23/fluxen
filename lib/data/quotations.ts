@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, Quotation } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
 import type { QuotationStatus } from "@/lib/data/quotation-status";
@@ -40,14 +40,17 @@ export async function listQuotationsForCompany(
   }));
 }
 
-const quotationDetailArgs = {
-  include: {
-    lines: { orderBy: [{ sortOrder: "asc" as const }, { id: "asc" as const }] },
-    company: { select: { name: true as const } },
-  },
-} satisfies Prisma.QuotationFindFirstArgs;
+const quotationDetailInclude = {
+  lines: { orderBy: [{ sortOrder: "asc" as const }, { id: "asc" as const }] },
+  company: { select: { name: true as const } },
+} satisfies Prisma.QuotationInclude;
 
-export type QuotationDetail = Prisma.QuotationGetPayload<typeof quotationDetailArgs>;
+type QuotationDetailPayload = Prisma.QuotationGetPayload<{
+  include: typeof quotationDetailInclude;
+}>;
+
+/** Escalares del modelo + relaciones (evita inferencias incompletas de `GetPayload` en algunos entornos). */
+export type QuotationDetail = Quotation & Pick<QuotationDetailPayload, "lines" | "company">;
 
 export type QuotationDetailLine = QuotationDetail["lines"][number];
 
@@ -55,8 +58,9 @@ export async function getQuotationForCompany(
   id: string,
   companyId: string,
 ): Promise<QuotationDetail | null> {
-  return prisma.quotation.findFirst({
+  const row = await prisma.quotation.findFirst({
     where: { id, companyId },
-    ...quotationDetailArgs,
+    include: quotationDetailInclude,
   });
+  return row as QuotationDetail | null;
 }
