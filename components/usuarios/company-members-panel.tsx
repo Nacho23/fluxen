@@ -38,6 +38,11 @@ export function CompanyMembersPanel({
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [devInviteCredentials, setDevInviteCredentials] = useState<{
+    email: string;
+    password: string;
+    notice: string;
+  } | null>(null);
   const [editingMember, setEditingMember] = useState<MemberRow | null>(null);
 
   const addableRoles =
@@ -68,10 +73,14 @@ export function CompanyMembersPanel({
 
   async function onAdd(formData: FormData) {
     setFormError(null);
+    setDevInviteCredentials(null);
     const res = await addCompanyMember(null, formData);
     if (!res.ok) {
       setFormError(res.error);
       return;
+    }
+    if (res.credentialsForTester) {
+      setDevInviteCredentials(res.credentialsForTester);
     }
     router.refresh();
   }
@@ -110,10 +119,41 @@ export function CompanyMembersPanel({
       <section className="border-border bg-card/60 max-w-3xl rounded-xl border p-5 shadow-sm">
         <h2 className="text-foreground mb-1 text-sm font-semibold">Añadir usuario</h2>
         <p className="text-muted-foreground mb-4 text-xs leading-relaxed">
-          Si el correo aún no tiene cuenta, se crea automáticamente. La contraseña inicial es la parte del
-          correo antes de @ más <span className="font-mono">1234</span>. Puedes completar nombre, RUT y
-          datos de contacto o banco al crear la cuenta (solo aplica a usuarios nuevos).
+          Si el correo aún no tiene cuenta, se crea automáticamente con una contraseña inicial segura. En
+          producción se envía un correo de bienvenida con esas credenciales; en desarrollo verás las
+          credenciales en pantalla. Puedes completar nombre, RUT y datos de contacto o banco (solo usuarios
+          nuevos).
         </p>
+        {devInviteCredentials ? (
+          <div
+            className="border-primary/30 bg-primary/5 mb-4 rounded-lg border px-3 py-3 text-sm"
+            role="status"
+          >
+            <p className="text-foreground font-medium">Usuario creado (modo desarrollo)</p>
+            <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+              {devInviteCredentials.notice}
+            </p>
+            <dl className="border-border mt-3 space-y-2 rounded-md border bg-background/80 p-3 font-mono text-xs">
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
+                <dt className="text-muted-foreground shrink-0">Correo</dt>
+                <dd className="break-all">{devInviteCredentials.email}</dd>
+              </div>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
+                <dt className="text-muted-foreground shrink-0">Contraseña inicial</dt>
+                <dd className="break-all">{devInviteCredentials.password}</dd>
+              </div>
+            </dl>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              onClick={() => setDevInviteCredentials(null)}
+            >
+              Ocultar credenciales
+            </Button>
+          </div>
+        ) : null}
         <form action={onAdd} className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="min-w-0 flex-1 space-y-1.5">

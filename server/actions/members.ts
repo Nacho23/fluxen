@@ -75,10 +75,29 @@ const addSchema = z.object({
   role: z.enum(["OWNER", "ADMIN", "OPS_ADMIN", "FIELD"]),
 });
 
+/** En dev no enviamos Resend; en producción sí. `FORCE_INVITE_EMAIL=true` fuerza envío; `SKIP_INVITE_EMAIL=true` lo desactiva aunque sea producción. */
+function shouldSkipWelcomeEmail(): boolean {
+  if (process.env.FORCE_INVITE_EMAIL === "true") return false;
+  if (process.env.SKIP_INVITE_EMAIL === "true") return true;
+  return process.env.NODE_ENV !== "production";
+}
+
+export type AddCompanyMemberResult =
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      /** Solo cuando se creó usuario nuevo y no se envió correo (p. ej. desarrollo). */
+      credentialsForTester?: {
+        email: string;
+        password: string;
+        notice: string;
+      };
+    };
+
 export async function addCompanyMember(
   _prev: unknown,
   formData: FormData,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<AddCompanyMemberResult> {
   try {
     const { companyId, actorRole, session } = await requireUsuariosAction("create");
 
@@ -160,6 +179,20 @@ export async function addCompanyMember(
     });
 
     if (txResult.plainPassword) {
+      if (shouldSkipWelcomeEmail()) {
+        revalidatePath("/usuarios");
+        revalidatePath("/", "layout");
+        return {
+          ok: true,
+          credentialsForTester: {
+            email,
+            password: txResult.plainPassword,
+            notice:
+              "Entorno de desarrollo: no se envía el correo de bienvenida. En producción se enviará automáticamente el correo con el usuario y la contraseña inicial. Comparte estas credenciales solo con quien vaya a probar el acceso.",
+          },
+        };
+      }
+
       const company = await prisma.company.findUnique({
         where: { id: companyId },
         select: { name: true },

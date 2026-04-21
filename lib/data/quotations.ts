@@ -43,6 +43,8 @@ export async function listQuotationsForCompany(
 const quotationDetailInclude = {
   lines: { orderBy: [{ sortOrder: "asc" as const }, { id: "asc" as const }] },
   company: { select: { name: true as const } },
+  /** Correo actual del cliente (la cotización guarda copia en `clientEmail`, que puede quedar vacía si luego se edita la ficha). */
+  client: { select: { email: true as const } },
 } satisfies Prisma.QuotationInclude;
 
 type QuotationDetailPayload = Prisma.QuotationGetPayload<{
@@ -50,7 +52,18 @@ type QuotationDetailPayload = Prisma.QuotationGetPayload<{
 }>;
 
 /** Escalares del modelo + relaciones (evita inferencias incompletas de `GetPayload` en algunos entornos). */
-export type QuotationDetail = Quotation & Pick<QuotationDetailPayload, "lines" | "company">;
+export type QuotationDetail = Quotation & Pick<
+  QuotationDetailPayload,
+  "lines" | "company" | "client"
+>;
+
+/** Correo para UI y envío: copia en la cotización, o si falta, el de la ficha del cliente vinculada. */
+export function effectiveQuotationClientEmail(q: QuotationDetail): string | null {
+  const snap = q.clientEmail?.trim();
+  if (snap) return snap;
+  const live = q.client?.email?.trim();
+  return live && live.length > 0 ? live : null;
+}
 
 export type QuotationDetailLine = QuotationDetail["lines"][number];
 

@@ -14,6 +14,7 @@ import { findAgendaEventIdForQuotation } from "@/lib/data/agenda";
 import { isPendingClientConfirmationAfterEmail } from "@/lib/data/quotation-follow-up";
 import { listQuotationCustomFieldsForCompany } from "@/lib/data/quotation-custom-fields";
 import {
+  effectiveQuotationClientEmail,
   getQuotationForCompany,
   type QuotationDetailLine,
 } from "@/lib/data/quotations";
@@ -65,6 +66,8 @@ export default async function CotizacionDetallePage({
 
   const customDefinitions = await listQuotationCustomFieldsForCompany(session.activeCompanyId);
   const storedCustom = parseStoredCustomFieldValues(q.customFieldValues);
+  const clientEmailForActions = effectiveQuotationClientEmail(q);
+  const emailShownFromClientOnly = !q.clientEmail?.trim() && Boolean(clientEmailForActions);
 
   const agendaEventId =
     q.status === "ACCEPTED" && canReadAgenda
@@ -127,10 +130,18 @@ export default async function CotizacionDetallePage({
               <dt className="text-muted-foreground">Cliente</dt>
               <dd className="text-right font-medium">{q.clientName}</dd>
             </div>
-            {q.clientEmail ? (
+            {clientEmailForActions ? (
               <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Correo</dt>
-                <dd className="text-right break-all">{q.clientEmail}</dd>
+                <dt className="text-muted-foreground shrink-0">Correo</dt>
+                <dd className="text-right break-all">
+                  <span className="text-foreground">{clientEmailForActions}</span>
+                  {emailShownFromClientOnly ? (
+                    <span className="text-muted-foreground mt-1 block text-xs">
+                      Tomado de la ficha actual del cliente (el documento se emitió sin correo en la
+                      cotización).
+                    </span>
+                  ) : null}
+                </dd>
               </div>
             ) : (
               <div className="flex justify-between gap-4">
@@ -214,7 +225,7 @@ export default async function CotizacionDetallePage({
             <h3 className="text-foreground mb-2 text-sm font-semibold">Envío por correo</h3>
             <SendQuotationEmailButton
               quotationId={q.id}
-              clientEmail={q.clientEmail ?? null}
+              clientEmail={clientEmailForActions}
               emailSent={q.emailSent}
               emailSentAt={q.emailSentAt}
             />

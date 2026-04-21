@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth/options";
 import { sessionHasPermission } from "@/lib/auth/check-permission";
-import { getQuotationForCompany } from "@/lib/data/quotations";
+import { effectiveQuotationClientEmail, getQuotationForCompany } from "@/lib/data/quotations";
 import { prisma } from "@/lib/db/prisma";
 import { buildQuotationEmailContent } from "@/lib/email/quotation-email";
 import { sendTransactionalEmail } from "@/lib/email/resend-send";
@@ -32,9 +32,13 @@ export async function sendQuotationEmail(
     return { ok: false, error: "Cotización no encontrada" };
   }
 
-  const to = q.clientEmail?.trim();
+  const to = effectiveQuotationClientEmail(q);
   if (!to) {
-    return { ok: false, error: "Esta cotización no tiene correo del cliente. Añádelo en la ficha del cliente." };
+    return {
+      ok: false,
+      error:
+        "No hay correo en esta cotización ni en la ficha del cliente vinculado. Añádelo en Clientes o en una cotización nueva.",
+    };
   }
 
   let pdfBuffer: Buffer;
