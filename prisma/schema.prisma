@@ -68,6 +68,12 @@ enum AgendaAttendanceStatus {
   DECLINED
 }
 
+/// Menú lateral: compacto con marca Fluxen vs cabecera con portada y logo de empresa.
+enum SidebarPanelStyle {
+  STANDARD
+  BRANDED
+}
+
 /// Pendiente de confirmación del trabajador; SIGNED tras “firmar” (botón / futura firma electrónica).
 enum PaymentStatus {
   PENDING_SIGNATURE
@@ -100,6 +106,7 @@ model User {
   foldersCreated        CompanyDocumentFolder[] @relation("FolderCreator")
   agendaEventsCreated   AgendaEvent[]           @relation("AgendaEventCreator")
   agendaAttendances     AgendaAttendance[]
+  inAppNotifications    InAppNotification[]
 }
 
 /// Carpeta lógica; permisos por carpeta (autor + banderas, como documentos) + matriz por rol.
@@ -181,6 +188,19 @@ model Company {
   country             String?
   rut                 String?
   businessName        String?
+  sidebarPanelStyle SidebarPanelStyle @default(STANDARD)
+  /// URL de imagen de portada (banner) del menú lateral en modo con marca.
+  sidebarCoverUrl   String?
+  /// URL de logo o avatar circular en el menú lateral en modo con marca.
+  sidebarAvatarUrl  String?
+  /// Clave R2 de la portada (si existe, tiene prioridad sobre `sidebarCoverUrl`).
+  sidebarCoverStorageKey   String?
+  /// Clave R2 del logo/avatar (si existe, tiene prioridad sobre `sidebarAvatarUrl`).
+  sidebarAvatarStorageKey  String?
+  /// Preferencias de envío por correo por tipo de evento (claves de app; ausente = activo).
+  notificationEmailEvents Json @default("{}")
+  /// Preferencias futuras de notificaciones en la app (misma convención de claves).
+  notificationInAppEvents Json @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   members    CompanyMember[]
@@ -192,6 +212,27 @@ model Company {
   clients    CompanyClient[]
   agendaEvents AgendaEvent[]
   quotationCustomFields QuotationCustomField[]
+  inAppNotifications      InAppNotification[]
+}
+
+/// Notificación en el panel (empresa activa + usuario destino).
+model InAppNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  companyId String
+  title     String
+  body      String?   @db.Text
+  href      String?
+  /// Debe coincidir con una clave de `Company.notificationInAppEvents`.
+  eventKey  String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([userId, companyId, readAt])
+  @@index([userId, companyId, createdAt])
 }
 
 /// Cliente de la empresa (persona u organización); usado en cotizaciones y CRM.

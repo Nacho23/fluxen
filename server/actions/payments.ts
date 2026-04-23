@@ -11,6 +11,10 @@ import { authOptions } from "@/lib/auth/options";
 import { sessionHasPermission } from "@/lib/auth/check-permission";
 import { roundMoney } from "@/lib/quotations/compute-totals";
 import { prisma } from "@/lib/db/prisma";
+import {
+  IN_APP_KEY_PAYMENT_PENDING_SIGNATURE,
+} from "@/lib/notifications/company-notification-catalog";
+import { createInAppNotificationIfEnabled } from "@/lib/notifications/in-app-delivery";
 
 async function requireSessionWithCompany() {
   const session = await getServerSession(authOptions);
@@ -100,6 +104,20 @@ export async function createPayment(
         transactionCode: transactionCode?.trim() ? transactionCode.trim() : null,
       },
       select: { id: true },
+    });
+
+    const money = new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      maximumFractionDigits: 0,
+    }).format(Number(totalDec));
+    await createInAppNotificationIfEnabled({
+      companyId,
+      userId: workerUserId,
+      eventKey: IN_APP_KEY_PAYMENT_PENDING_SIGNATURE,
+      title: "Pago pendiente de firma",
+      body: `Total ${money}. Revisa el detalle y confirma cuando corresponda.`,
+      href: `/pagos/${row.id}`,
     });
 
     revalidatePath("/pagos");

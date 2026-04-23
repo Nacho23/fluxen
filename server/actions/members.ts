@@ -17,6 +17,10 @@ import {
   buildWelcomeUserLoginUrl,
 } from "@/lib/email/welcome-user-email";
 import { sendTransactionalEmail } from "@/lib/email/resend-send";
+import {
+  isEmailNotificationEnabled,
+  NOTIFICATION_KEY_MEMBER_INVITE_EMAIL,
+} from "@/lib/notifications/company-notification-catalog";
 import { prisma } from "@/lib/db/prisma";
 import { parseInviteProfileExtras, parseProfileFormData } from "@/lib/user-profile/parse-profile-form-data";
 
@@ -195,7 +199,7 @@ export async function addCompanyMember(
 
       const company = await prisma.company.findUnique({
         where: { id: companyId },
-        select: { name: true },
+        select: { name: true, notificationEmailEvents: true },
       });
       if (!company) {
         await prisma.$transaction(async (tx) => {
@@ -207,6 +211,25 @@ export async function addCompanyMember(
         return {
           ok: false,
           error: "No se encontró la empresa para enviar el correo de bienvenida.",
+        };
+      }
+
+      if (
+        !isEmailNotificationEnabled(
+          company.notificationEmailEvents,
+          NOTIFICATION_KEY_MEMBER_INVITE_EMAIL,
+        )
+      ) {
+        revalidatePath("/usuarios");
+        revalidatePath("/", "layout");
+        return {
+          ok: true,
+          credentialsForTester: {
+            email,
+            password: txResult.plainPassword,
+            notice:
+              "El correo de invitación está desactivado en Configuración → Notificaciones. Entrega el usuario y la contraseña inicial por un canal seguro.",
+          },
         };
       }
 

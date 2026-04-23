@@ -7,6 +7,10 @@ import { sessionHasPermission } from "@/lib/auth/check-permission";
 import { effectiveQuotationClientEmail, getQuotationForCompany } from "@/lib/data/quotations";
 import { prisma } from "@/lib/db/prisma";
 import { buildQuotationEmailContent } from "@/lib/email/quotation-email";
+import {
+  isEmailNotificationEnabled,
+  NOTIFICATION_KEY_QUOTATION_EMAIL,
+} from "@/lib/notifications/company-notification-catalog";
 import { sendTransactionalEmail } from "@/lib/email/resend-send";
 import {
   quotationPdfAttachmentFilename,
@@ -38,6 +42,18 @@ export async function sendQuotationEmail(
       ok: false,
       error:
         "No hay correo en esta cotización ni en la ficha del cliente vinculado. Añádelo en Clientes o en una cotización nueva.",
+    };
+  }
+
+  const companyPrefs = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { notificationEmailEvents: true },
+  });
+  if (!isEmailNotificationEnabled(companyPrefs?.notificationEmailEvents, NOTIFICATION_KEY_QUOTATION_EMAIL)) {
+    return {
+      ok: false,
+      error:
+        "El envío de cotizaciones por correo está desactivado para esta empresa. Actívalo en Configuración → Notificaciones.",
     };
   }
 

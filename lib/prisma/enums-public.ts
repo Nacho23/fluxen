@@ -71,3 +71,9 @@ export const PaymentStatus = {
   SIGNED: "SIGNED",
 } as const;
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+
+export const SidebarPanelStyle = {
+  STANDARD: "STANDARD",
+  BRANDED: "BRANDED",
+} as const;
+export type SidebarPanelStyle = (typeof SidebarPanelStyle)[keyof typeof SidebarPanelStyle];

@@ -1,6 +1,7 @@
 "use client";
 
 import { Building2, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ export function CompanySwitcher({
 }: Readonly<{
   className?: string;
 }>) {
+  const router = useRouter();
   const { data: session, status, update } = useSession();
   const companies = session?.companies ?? [];
   const activeId = session?.activeCompanyId ?? "";
@@ -51,6 +53,7 @@ export function CompanySwitcher({
           aria-label="Empresa activa"
           onChange={async (e) => {
             await update({ activeCompanyId: e.target.value });
+            router.refresh();
           }}
         >
           {companies.map((c) => (

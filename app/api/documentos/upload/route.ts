@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       await putObjectBytes(key, buffer, contentType);
     } catch (e) {
       return NextResponse.json(
-        { ok: false, error: e instanceof Error ? e.message : "Error al subir a R2" },
+        { ok: false, error: e instanceof Error ? e.message : "Error al subir imagen" },
         { status: 500 },
       );
     }

@@ -11,6 +11,9 @@ import { randomUUID } from "node:crypto";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
+/** Imágenes de marca (portada / avatar): límite por archivo. */
+export const MAX_BRANDING_IMAGE_BYTES = 5 * 1024 * 1024;
+
 export function isR2Configured(): boolean {
   return Boolean(
     process.env.R2_ACCOUNT_ID &&
@@ -60,6 +63,32 @@ export function assertKeyBelongsToCompany(key: string, companyId: string): void 
   }
 }
 
+const BRANDING_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+
+function brandingExtensionLower(filename: string): string {
+  const base = filename.replace(/^.*[/\\]/, "");
+  const i = base.lastIndexOf(".");
+  if (i < 0) return ".jpg";
+  const ext = base.slice(i).toLowerCase();
+  return BRANDING_EXT.has(ext) ? ext : ".jpg";
+}
+
+export function buildBrandingObjectKey(
+  companyId: string,
+  kind: "cover" | "avatar",
+  originalFilename: string,
+): string {
+  const ext = brandingExtensionLower(originalFilename);
+  return `companies/${companyId}/branding/${kind}-${randomUUID()}${ext}`;
+}
+
+export function assertBrandingKeyBelongsToCompany(key: string, companyId: string): void {
+  const prefix = `companies/${companyId}/branding/`;
+  if (!key.startsWith(prefix)) {
+    throw new Error("Clave de imagen de marca inválida");
+  }
+}
+
 export { MAX_UPLOAD_BYTES };
 
 export async function presignGetObject(key: string, downloadFilename: string): Promise<string> {
@@ -71,6 +100,22 @@ export async function presignGetObject(key: string, downloadFilename: string): P
     ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}`,
   });
   return getSignedUrl(client, cmd, { expiresIn: 300 });
+}
+
+/** URL firmada para mostrar imagen en el navegador (sin forzar descarga). */
+export async function presignGetObjectInline(
+  key: string,
+  contentType: string,
+  expiresInSeconds = 3600,
+): Promise<string> {
+  const client = getClient();
+  const cmd = new GetObjectCommand({
+    Bucket: getBucket(),
+    Key: key,
+    ResponseContentType: contentType,
+    ResponseContentDisposition: "inline",
+  });
+  return getSignedUrl(client, cmd, { expiresIn: expiresInSeconds });
 }
 
 export async function headObjectMeta(key: string): Promise<{ contentLength: number; contentType: string }> {

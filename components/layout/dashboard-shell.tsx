@@ -4,13 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { LogOut, Menu, Wrench, X } from "lucide-react";
+import { LogOut, Menu, Wrench } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { CompanySwitcher } from "@/components/layout/company-switcher";
+import { SidebarShellHeader } from "@/components/layout/sidebar-shell-header";
+import { NotificationsPopover } from "@/components/layout/notifications-popover";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getActiveCompanyRole } from "@/lib/auth/permissions";
+import { brandingImageSrc } from "@/lib/branding/branding-image-src";
 import { navItemsForSession } from "@/lib/navigation/app-nav";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +35,27 @@ export function DashboardShell({
   const hasCompanies = (session?.companies?.length ?? 0) > 0;
   const role = getActiveCompanyRole(session ?? null);
   const navItems = navItemsForSession(hasCompanies, role, session?.permissions);
+  const activeCompany =
+    session?.companies?.find((c) => c.id === session?.activeCompanyId) ?? null;
+  const sidebarBranded = (activeCompany?.sidebarPanelStyle ?? "STANDARD") === "BRANDED";
+  const coverSrc =
+    activeCompany?.id != null
+      ? brandingImageSrc(
+          activeCompany.id,
+          "cover",
+          activeCompany.sidebarCoverHasR2 === true,
+          activeCompany.sidebarCoverUrl,
+        )
+      : null;
+  const avatarSrc =
+    activeCompany?.id != null
+      ? brandingImageSrc(
+          activeCompany.id,
+          "avatar",
+          activeCompany.sidebarAvatarHasR2 === true,
+          activeCompany.sidebarAvatarUrl,
+        )
+      : null;
 
   return (
     <div className="bg-background flex min-h-full flex-1">
@@ -50,28 +74,13 @@ export function DashboardShell({
           mobileOpen ? "flex" : "hidden md:flex",
         )}
       >
-        <div className="border-sidebar-border flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4">
-          <Link
-            href="/dashboard"
-            className="text-sidebar-foreground group flex items-center gap-3 font-semibold tracking-tight"
-            onClick={() => setMobileOpen(false)}
-          >
-            <span className="bg-sidebar-primary/18 text-sidebar-primary ring-sidebar-primary/25 flex size-9 shrink-0 items-center justify-center rounded-xl ring-1">
-              <Wrench className="size-[1.125rem]" aria-hidden />
-            </span>
-            <span className="text-[0.95rem]">Fluxen</span>
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-sidebar-foreground/80 md:hidden"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Cerrar menú"
-          >
-            <X className="size-4" />
-          </Button>
-        </div>
+        <SidebarShellHeader
+          companyName={activeCompany?.name ?? null}
+          branded={sidebarBranded}
+          coverSrc={coverSrc}
+          avatarSrc={avatarSrc}
+          onMobileClose={() => setMobileOpen(false)}
+        />
 
         <div className="border-sidebar-border border-b px-3 pb-3">
           <CompanySwitcher />
@@ -159,24 +168,32 @@ export function DashboardShell({
       </aside>
 
       <div className="flex min-h-full min-w-0 flex-1 flex-col">
-        <header className="bg-background/85 border-border supports-[backdrop-filter]:bg-background/70 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur-md md:hidden">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menú"
-          >
-            <Menu className="size-4" />
-          </Button>
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="bg-primary/16 text-primary ring-primary/22 flex size-8 shrink-0 items-center justify-center rounded-lg ring-1">
+        <header className="bg-background/85 border-border supports-[backdrop-filter]:bg-background/70 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur-md">
+          <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 md:hidden"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Abrir menú"
+            >
+              <Menu className="size-4" />
+            </Button>
+            <span className="bg-primary/16 text-primary ring-primary/22 flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 md:hidden">
               <Wrench className="size-3.5" aria-hidden />
             </span>
-            <span className="truncate font-semibold">Fluxen</span>
+            <span className="text-foreground truncate text-sm font-semibold md:text-base">
+              <span className="md:hidden">Fluxen</span>
+              <span className="text-muted-foreground hidden font-medium md:inline">
+                {activeCompany?.name ?? "Fluxen"}
+              </span>
+            </span>
           </div>
-          <ThemeToggle className="ml-auto shrink-0" />
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <NotificationsPopover key={activeCompany?.id ?? session?.activeCompanyId ?? "none"} />
+            <ThemeToggle />
+          </div>
         </header>
 
         <main className="relative flex-1">

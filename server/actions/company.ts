@@ -9,6 +9,10 @@ import { CompanyRole } from "@/lib/prisma/enums-public";
 import { authOptions } from "@/lib/auth/options";
 import { getActiveCompanyRole } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
+import {
+  assertBrandingKeyBelongsToCompany,
+  deleteObject,
+} from "@/lib/storage/r2";
 
 function slugify(name: string) {
   const base = name
@@ -73,6 +77,8 @@ export async function createCompany(
 
   revalidatePath("/dashboard");
   revalidatePath("/configuracion");
+  revalidatePath("/configuracion/ficha");
+  revalidatePath("/configuracion/preferencias");
   revalidatePath("/", "layout");
   return { ok: true, companyId: company.id };
 }
@@ -189,7 +195,160 @@ export async function updateActiveCompany(
 
   revalidatePath("/dashboard");
   revalidatePath("/configuracion");
+  revalidatePath("/configuracion/ficha");
+  revalidatePath("/configuracion/preferencias");
   revalidatePath("/cotizaciones");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+const optionalHttpsImageUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .transform((s) => (s === "" ? null : s))
+  .refine((s) => s === null || z.string().url().safeParse(s).success, {
+    message: "URL no válida (usa http:// o https://)",
+  })
+  .refine((s) => s === null || /^https?:\/\//i.test(s), {
+    message: "Solo se permiten URLs http o https",
+  });
+
+const sidebarSettingsSchema = z.object({
+  sidebarPanelStyle: z.enum(["STANDARD", "BRANDED"]),
+  sidebarCoverUrl: optionalHttpsImageUrl,
+  sidebarAvatarUrl: optionalHttpsImageUrl,
+});
+
+function checkboxOn(formData: FormData, name: string): boolean {
+  const v = formData.get(name);
+  return v === "on" || v === "true";
+}
+
+export async function updateCompanySidebarSettings(
+  _prev: unknown,
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.activeCompanyId) {
+    return { ok: false, error: "No autorizado" };
+  }
+
+  const role = getActiveCompanyRole(session);
+  if (role !== CompanyRole.OWNER) {
+    return {
+      ok: false,
+      error: "Solo el propietario puede cambiar la apariencia del menú",
+    };
+  }
+
+  const companyId = session.activeCompanyId;
+  const current = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: {
+      sidebarCoverUrl: true,
+      sidebarCoverStorageKey: true,
+      sidebarAvatarUrl: true,
+      sidebarAvatarStorageKey: true,
+    },
+  });
+  if (!current) {
+    return { ok: false, error: "Empresa no encontrada" };
+  }
+
+  const removeCover = checkboxOn(formData, "removeSidebarCover");
+  const removeAvatar = checkboxOn(formData, "removeSidebarAvatar");
+
+  const styleRaw = formData.get("sidebarPanelStyle");
+  const parsed = sidebarSettingsSchema.safeParse({
+    sidebarPanelStyle: typeof styleRaw === "string" ? styleRaw : "",
+    sidebarCoverUrl: formText(formData, "sidebarCoverUrl"),
+    sidebarAvatarUrl: formText(formData, "sidebarAvatarUrl"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  let nextCoverUrl = current.sidebarCoverUrl;
+  let nextCoverKey = current.sidebarCoverStorageKey;
+  let nextAvatarUrl = current.sidebarAvatarUrl;
+  let nextAvatarKey = current.sidebarAvatarStorageKey;
+
+  if (removeCover) {
+    nextCoverUrl = null;
+    if (nextCoverKey) {
+      try {
+        assertBrandingKeyBelongsToCompany(nextCoverKey, companyId);
+        await deleteObject(nextCoverKey);
+      } catch {
+        /* ignore */
+      }
+      nextCoverKey = null;
+    }
+  } else {
+    const submittedCover = parsed.data.sidebarCoverUrl;
+    if (submittedCover) {
+      nextCoverUrl = submittedCover;
+      if (nextCoverKey) {
+        try {
+          assertBrandingKeyBelongsToCompany(nextCoverKey, companyId);
+          await deleteObject(nextCoverKey);
+        } catch {
+          /* ignore */
+        }
+        nextCoverKey = null;
+      }
+    } else {
+      nextCoverUrl = null;
+      nextCoverKey = current.sidebarCoverStorageKey;
+    }
+  }
+
+  if (removeAvatar) {
+    nextAvatarUrl = null;
+    if (nextAvatarKey) {
+      try {
+        assertBrandingKeyBelongsToCompany(nextAvatarKey, companyId);
+        await deleteObject(nextAvatarKey);
+      } catch {
+        /* ignore */
+      }
+      nextAvatarKey = null;
+    }
+  } else {
+    const submittedAvatar = parsed.data.sidebarAvatarUrl;
+    if (submittedAvatar) {
+      nextAvatarUrl = submittedAvatar;
+      if (nextAvatarKey) {
+        try {
+          assertBrandingKeyBelongsToCompany(nextAvatarKey, companyId);
+          await deleteObject(nextAvatarKey);
+        } catch {
+          /* ignore */
+        }
+        nextAvatarKey = null;
+      }
+    } else {
+      nextAvatarUrl = null;
+      nextAvatarKey = current.sidebarAvatarStorageKey;
+    }
+  }
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: {
+      sidebarPanelStyle: parsed.data.sidebarPanelStyle,
+      sidebarCoverUrl: nextCoverUrl,
+      sidebarAvatarUrl: nextAvatarUrl,
+      sidebarCoverStorageKey: nextCoverKey,
+      sidebarAvatarStorageKey: nextAvatarKey,
+    },
+  });
+
+  revalidatePath("/configuracion");
+  revalidatePath("/configuracion/ficha");
+  revalidatePath("/configuracion/preferencias");
+  revalidatePath("/dashboard");
   revalidatePath("/", "layout");
   return { ok: true };
 }

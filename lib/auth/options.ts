@@ -11,13 +11,30 @@ import type { SessionCompany } from "@/types/next-auth";
 async function loadMemberships(userId: string): Promise<SessionCompany[]> {
   const rows = await prisma.companyMember.findMany({
     where: { userId },
-    include: { company: true },
+    include: {
+      company: {
+        select: {
+          id: true,
+          name: true,
+          sidebarPanelStyle: true,
+          sidebarCoverUrl: true,
+          sidebarAvatarUrl: true,
+          sidebarCoverStorageKey: true,
+          sidebarAvatarStorageKey: true,
+        },
+      },
+    },
     orderBy: { createdAt: "asc" },
   });
   return rows.map((m) => ({
     id: m.company.id,
     name: m.company.name,
     role: m.role,
+    sidebarPanelStyle: m.company.sidebarPanelStyle,
+    sidebarCoverUrl: m.company.sidebarCoverUrl,
+    sidebarAvatarUrl: m.company.sidebarAvatarUrl,
+    sidebarCoverHasR2: Boolean(m.company.sidebarCoverStorageKey),
+    sidebarAvatarHasR2: Boolean(m.company.sidebarAvatarStorageKey),
   }));
 }
 

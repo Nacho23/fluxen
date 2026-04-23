@@ -14,6 +14,7 @@ export const APP_RESOURCES = [
   "pagos",
   "documentos",
   "configuracion",
+  "notificaciones",
 ] as const;
 
 export type AppResource = (typeof APP_RESOURCES)[number];
@@ -74,6 +75,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       pagos: { ...F(), readAll: true },
       documentos: F(),
       configuracion: R(),
+      notificaciones: F(),
     },
     [CompanyRole.OPS_ADMIN]: {
       dashboard: R(),
@@ -87,6 +89,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       pagos: { ...F(), readAll: true },
       documentos: F(),
       configuracion: R(),
+      notificaciones: R(),
     },
     [CompanyRole.FIELD]: {
       dashboard: R(),
@@ -100,6 +103,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       pagos: { ...R(), readAll: false },
       documentos: R(),
       configuracion: Z(),
+      notificaciones: Z(),
     },
   };
 }
@@ -226,6 +230,7 @@ export const RESOURCE_LABEL: Record<AppResource, string> = {
   pagos: "Pagos",
   documentos: "Documentos",
   configuracion: "Configuración",
+  notificaciones: "Notificaciones",
 };
 
 export const ACTION_LABEL: Record<PermissionAction, string> = {

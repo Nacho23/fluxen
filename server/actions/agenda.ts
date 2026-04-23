@@ -8,6 +8,8 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth/options";
 import { sessionHasPermission } from "@/lib/auth/check-permission";
 import { prisma } from "@/lib/db/prisma";
+import { IN_APP_KEY_AGENDA_INVITATION } from "@/lib/notifications/company-notification-catalog";
+import { createInAppNotificationIfEnabled } from "@/lib/notifications/in-app-delivery";
 
 async function requireAgendaAction(action: "create" | "update" | "delete") {
   const session = await getServerSession(authOptions);
@@ -102,6 +104,19 @@ export async function createAgendaEvent(
       select: { id: true },
     });
 
+    await Promise.all(
+      attendees.map((uid) =>
+        createInAppNotificationIfEnabled({
+          companyId,
+          userId: uid,
+          eventKey: IN_APP_KEY_AGENDA_INVITATION,
+          title: "Nuevo evento en la agenda",
+          body: parsed.data.title,
+          href: `/agenda/${event.id}`,
+        }),
+      ),
+    );
+
     revalidatePath("/agenda");
     revalidatePath(`/agenda/${event.id}`);
     return { ok: true, id: event.id };
@@ -147,6 +162,12 @@ export async function updateAgendaEvent(
     const desc = parsed.data.description?.trim() || null;
     const loc = parsed.data.location?.trim() || null;
 
+    const prevAttendees = await prisma.agendaAttendance.findMany({
+      where: { eventId: existing.id },
+      select: { userId: true },
+    });
+    const prevUserIds = new Set(prevAttendees.map((a) => a.userId));
+
     await prisma.$transaction(async (tx) => {
       await tx.agendaEvent.update({
         where: { id: existing.id },
@@ -170,6 +191,20 @@ export async function updateAgendaEvent(
         });
       }
     });
+
+    const newlyInvited = attendees.filter((uid) => !prevUserIds.has(uid));
+    await Promise.all(
+      newlyInvited.map((uid) =>
+        createInAppNotificationIfEnabled({
+          companyId,
+          userId: uid,
+          eventKey: IN_APP_KEY_AGENDA_INVITATION,
+          title: "Nuevo evento en la agenda",
+          body: parsed.data.title,
+          href: `/agenda/${existing.id}`,
+        }),
+      ),
+    );
 
     revalidatePath("/agenda");
     revalidatePath(`/agenda/${existing.id}`);
