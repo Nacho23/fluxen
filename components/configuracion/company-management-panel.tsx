@@ -8,18 +8,33 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { createCompany, updateActiveCompany } from "@/server/actions/company";
+
+type CompanyProfileFields = {
+  address: string | null;
+  phone: string | null;
+  legalRepresentative: string | null;
+  email: string | null;
+  website: string | null;
+  city: string | null;
+  country: string | null;
+  rut: string | null;
+  businessName: string | null;
+};
 
 export function CompanyManagementPanel({
   companyName,
   companySlug,
   quoteCodePrefix,
   quoteCodePadding,
+  profile,
 }: Readonly<{
   companyName: string;
   companySlug: string;
   quoteCodePrefix: string;
   quoteCodePadding: number;
+  profile: CompanyProfileFields;
 }>) {
   const router = useRouter();
   const { update } = useSession();
@@ -61,8 +76,11 @@ export function CompanyManagementPanel({
   }
 
   return (
-    <div id="empresas" className="space-y-8 scroll-mt-8">
-      <section className="border-border bg-card/60 max-w-xl rounded-xl border p-5 shadow-sm">
+    <div
+      id="empresas"
+      className="scroll-mt-8 flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8"
+    >
+      <section className="border-border bg-card/60 w-full min-w-0 max-w-2xl flex-1 rounded-xl border p-5 shadow-sm lg:max-w-none">
         <div className="mb-4 flex items-start gap-3">
           <span className="bg-primary/10 text-primary ring-primary/15 flex size-10 shrink-0 items-center justify-center rounded-xl ring-1">
             <Pencil className="size-5" aria-hidden />
@@ -129,6 +147,127 @@ export function CompanyManagementPanel({
               </p>
             </div>
           </div>
+
+          <div className="border-border space-y-4 border-t pt-5">
+            <div>
+              <h3 className="text-foreground text-sm font-semibold">Datos empresa</h3>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="companyRut">RUT</Label>
+                <Input
+                  id="companyRut"
+                  name="rut"
+                  maxLength={20}
+                  defaultValue={profile.rut ?? ""}
+                  disabled={editPending}
+                  placeholder="Ej. 76.123.456-7"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Razón social</Label>
+                <Input
+                  id="businessName"
+                  name="businessName"
+                  maxLength={200}
+                  defaultValue={profile.businessName ?? ""}
+                  disabled={editPending}
+                  placeholder="Ej. Servicios SpA"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="legalRepresentative">Representante legal</Label>
+                <Input
+                  id="legalRepresentative"
+                  name="legalRepresentative"
+                  maxLength={200}
+                  defaultValue={profile.legalRepresentative ?? ""}
+                  disabled={editPending}
+                  placeholder="Nombre completo"
+                />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-foreground text-sm font-semibold">Datos de contacto</h3>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="companyAddress">Dirección</Label>
+                <textarea
+                  id="companyAddress"
+                  name="address"
+                  rows={3}
+                  maxLength={5000}
+                  defaultValue={profile.address ?? ""}
+                  disabled={editPending}
+                  placeholder="Calle, número, oficina…"
+                  className={cn(
+                    "border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[5rem] w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="companyPhone">Teléfono</Label>
+                <Input
+                  id="companyPhone"
+                  name="phone"
+                  maxLength={50}
+                  defaultValue={profile.phone ?? ""}
+                  disabled={editPending}
+                  placeholder="Ej. +56 9 1234 5678"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="companyEmail">Correo electrónico</Label>
+                <Input
+                  id="companyEmail"
+                  name="companyEmail"
+                  type="email"
+                  autoComplete="organization"
+                  maxLength={254}
+                  defaultValue={profile.email ?? ""}
+                  disabled={editPending}
+                  placeholder="contacto@empresa.cl"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="companyWebsite">Sitio web</Label>
+                <Input
+                  id="companyWebsite"
+                  name="website"
+                  inputMode="url"
+                  maxLength={500}
+                  defaultValue={profile.website ?? ""}
+                  disabled={editPending}
+                  placeholder="https://www.empresa.cl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyCity">Ciudad</Label>
+                <Input
+                  id="companyCity"
+                  name="city"
+                  maxLength={120}
+                  defaultValue={profile.city ?? ""}
+                  disabled={editPending}
+                  placeholder="Ej. Santiago"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyCountry">País</Label>
+                <Input
+                  id="companyCountry"
+                  name="country"
+                  maxLength={100}
+                  defaultValue={profile.country ?? ""}
+                  disabled={editPending}
+                  placeholder="Chile"
+                />
+              </div>
+            </div>
+          </div>
+
           {editError ? (
             <p className="text-destructive text-sm" role="alert">
               {editError}
@@ -147,7 +286,7 @@ export function CompanyManagementPanel({
         </form>
       </section>
 
-      <section className="border-primary/20 bg-card/80 ring-primary/10 max-w-xl rounded-2xl border p-6 shadow-sm ring-1">
+      <section className="border-primary/20 bg-card/80 ring-primary/10 w-full min-w-0 shrink-0 rounded-2xl border p-6 shadow-sm ring-1 lg:max-w-md">
         <div className="mb-4 flex items-start gap-3">
           <span className="bg-primary/12 text-primary ring-primary/20 flex size-10 shrink-0 items-center justify-center rounded-xl ring-1">
             <Plus className="size-5" aria-hidden />

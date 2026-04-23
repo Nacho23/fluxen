@@ -1,8 +1,9 @@
 "use client";
 
-import { Loader2, Plus, Trash2, UserPlus } from "lucide-react";
+import { Check, ChevronDown, Loader2, Plus, Trash2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Popover } from "radix-ui";
 import { useMemo, useState, useTransition } from "react";
 
 import { ClientFormModal } from "@/components/clientes/client-form-modal";
@@ -65,6 +66,17 @@ function createEmptyLine(lineKey?: string): DraftLine {
   };
 }
 
+function formatClientOptionLabel(c: ClientRow): string {
+  return c.email ? `${c.name} · ${c.email}` : c.name;
+}
+
+function clientMatchesSearch(c: ClientRow, raw: string): boolean {
+  const q = raw.trim().toLowerCase();
+  if (!q) return true;
+  const parts = [c.name, c.email, c.phone, c.rut].filter(Boolean) as string[];
+  return parts.some((p) => p.toLowerCase().includes(q));
+}
+
 function lineFromService(s: ServiceRow): DraftLine {
   const price =
     s.defaultPrice != null && s.defaultPrice !== ""
@@ -98,6 +110,8 @@ export function NewQuotationForm({
 
   const [serviceDate, setServiceDate] = useState(todayLocalISO);
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [discountMode, setDiscountMode] = useState<QuoteDiscountMode>("NONE");
   const [discountValue, setDiscountValue] = useState("");
@@ -112,6 +126,11 @@ export function NewQuotationForm({
   const selectedClient = useMemo(
     () => initialClients.find((c) => c.id === selectedClientId),
     [initialClients, selectedClientId],
+  );
+
+  const filteredClients = useMemo(
+    () => initialClients.filter((c) => clientMatchesSearch(c, clientSearch)),
+    [initialClients, clientSearch],
   );
 
   const preview = useMemo(() => {
@@ -264,20 +283,115 @@ export function NewQuotationForm({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
               <div className="grid min-w-0 flex-1 gap-1.5">
                 <Label htmlFor="clientSelect">Cliente</Label>
-                <select
-                  id="clientSelect"
-                  required={initialClients.length > 0}
-                  value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm"
-                >
-                  <option value="">Selecciona un cliente…</option>
-                  {initialClients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.email ? `${c.name} · ${c.email}` : c.name}
-                    </option>
-                  ))}
-                </select>
+                {initialClients.length > 0 ? (
+                  <Popover.Root
+                    open={clientPickerOpen}
+                    onOpenChange={(open) => {
+                      setClientPickerOpen(open);
+                      if (!open) setClientSearch("");
+                    }}
+                  >
+                    <Popover.Trigger
+                      type="button"
+                      id="clientSelect"
+                      aria-expanded={clientPickerOpen}
+                      aria-haspopup="listbox"
+                      aria-controls="client-listbox-panel"
+                      className={cn(
+                        "border-input bg-background flex h-10 w-full items-center justify-between gap-2 rounded-lg border px-3 text-left text-sm outline-none transition-[color,box-shadow] select-none",
+                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                        !selectedClientId && "text-muted-foreground",
+                      )}
+                    >
+                      <span className="min-w-0 truncate">
+                        {selectedClient
+                          ? formatClientOptionLabel(selectedClient)
+                          : "Selecciona un cliente…"}
+                      </span>
+                      <ChevronDown className="text-muted-foreground size-4 shrink-0 opacity-70" aria-hidden />
+                    </Popover.Trigger>
+                    <Popover.Portal>
+                      <Popover.Content
+                        align="start"
+                        sideOffset={4}
+                        className={cn(
+                          "border-border bg-popover text-popover-foreground z-50 max-h-[min(20rem,calc(100vh-6rem))] min-w-[var(--radix-popper-anchor-width)] overflow-hidden rounded-lg border p-0 shadow-md",
+                          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+                        )}
+                        onOpenAutoFocus={(e) => {
+                          e.preventDefault();
+                          queueMicrotask(() => document.getElementById("clientSearch")?.focus());
+                        }}
+                      >
+                        <div className="border-border border-b p-2">
+                          <Input
+                            id="clientSearch"
+                            type="search"
+                            autoComplete="off"
+                            placeholder="Buscar por nombre, correo, teléfono o RUT…"
+                            value={clientSearch}
+                            onChange={(e) => setClientSearch(e.target.value)}
+                            className="h-9"
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                e.stopPropagation();
+                                setClientPickerOpen(false);
+                              }
+                            }}
+                          />
+                        </div>
+                        <div
+                          id="client-listbox-panel"
+                          role="listbox"
+                          aria-label="Clientes"
+                          className="max-h-60 overflow-y-auto p-1"
+                        >
+                          {filteredClients.length === 0 ? (
+                            <p className="text-muted-foreground px-2 py-6 text-center text-xs">
+                              Sin coincidencias.
+                            </p>
+                          ) : (
+                            filteredClients.map((c) => {
+                              const selected = selectedClientId === c.id;
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={selected}
+                                  className={cn(
+                                    "hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm",
+                                    selected && "bg-accent text-accent-foreground",
+                                  )}
+                                  onClick={() => {
+                                    setSelectedClientId(c.id);
+                                    setClientPickerOpen(false);
+                                    setClientSearch("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn("size-4 shrink-0", !selected && "invisible")}
+                                    aria-hidden
+                                  />
+                                  <span className="min-w-0 flex-1 truncate">{formatClientOptionLabel(c)}</span>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </Popover.Content>
+                    </Popover.Portal>
+                  </Popover.Root>
+                ) : (
+                  <select
+                    id="clientSelect"
+                    disabled
+                    className="border-input bg-background text-muted-foreground h-10 w-full rounded-lg border px-3 text-sm"
+                    value=""
+                  >
+                    <option value="">Sin clientes</option>
+                  </select>
+                )}
               </div>
               {canCreateClient ? (
                 <Button

@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 export const metadata = {
   title: "Inicio",
   description:
-    "Fluxen organiza clientes, cotizaciones, documentos, órdenes y registro de pagos para empresas de servicios técnicos.",
+    "Fluxen concentra la venta y la ejecución en un solo panel: clientes, cotizaciones, agenda, documentos, órdenes y registro de pagos, con datos separados por empresa.",
 };
 
 const features = [
@@ -26,13 +26,13 @@ const features = [
     icon: Contact,
     title: "Clientes centralizados",
     description:
-      "Historial y datos en un solo lugar. Menos idas y vueltas por WhatsApp y hojas sueltas.",
+      "Historial y datos en un solo lugar. Menos idas y vueltas por WhatsApp y archivos sueltos.",
   },
   {
     icon: FileText,
     title: "Cotizaciones claras",
     description:
-      "Propuestas ordenadas y seguimiento del estado para cerrar ventas con más tranquilidad.",
+      "Propuestas ordenadas y estados visibles para saber qué está aprobado, pendiente o vencido.",
   },
   {
     icon: FolderOpen,
@@ -44,7 +44,7 @@ const features = [
     icon: ClipboardList,
     title: "Órdenes de trabajo",
     description:
-      "Del pedido al cierre: estados visibles para que todos sepan en qué va cada servicio.",
+      "Del pedido al cierre: prioridades y etapas claras para que el equipo sepa qué toca hacer hoy.",
   },
   {
     icon: Banknote,
@@ -74,7 +74,7 @@ const steps = [
   {
     n: "3",
     title: "Opera con orden",
-    text: "Clientes, cotizaciones y órdenes quedan asociados a esa empresa.",
+    text: "Clientes, cotizaciones, agenda, documentos y órdenes quedan asociados a esa empresa.",
   },
 ] as const;
 
@@ -160,7 +160,7 @@ export default function HomePage() {
             <div className="mb-8 flex flex-wrap items-center justify-center gap-2">
               <span className="border-border/80 bg-card/90 text-foreground shadow-primary/10 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide shadow-md ring-1 ring-primary/15 backdrop-blur-md">
                 <Sparkles className="text-primary size-3.5" aria-hidden />
-                Servicios técnicos
+                Venta y ejecución
               </span>
               <span className="text-muted-foreground hidden text-xs font-medium sm:inline">
                 Multi-empresa
@@ -168,14 +168,13 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-foreground mx-auto max-w-4xl text-balance text-4xl font-semibold tracking-tight md:text-5xl md:leading-[1.1] lg:text-[3.15rem]">
-              <span className="text-gradient-hero">Operación ordenada</span>
-              <span className="mt-2 block">de la solicitud al registro del trabajo</span>
+              <span className="text-gradient-hero">Todo el ciclo comercial</span>
+              <span className="mt-2 block">en un panel: cotiza, agenda, ejecuta y registra pagos</span>
             </h1>
 
             <p className="text-muted-foreground mx-auto mt-8 max-w-2xl text-pretty text-base leading-relaxed md:text-lg">
-              Una plataforma para empresas de mantenimiento y servicio en terreno: clientes,
-              cotizaciones, documentos, órdenes y registro de pagos en un solo lugar. Menos caos en chats y
-              planillas, más claridad para tu equipo.
+              Menos chats perdidos y menos planillas sueltas: la operación ordenada, a la vista y fácil de
+              seguir para todo el equipo.
             </p>
 
             <div
@@ -225,8 +224,8 @@ export default function HomePage() {
                 Todo lo que necesitas para el día a día
               </h2>
               <p className="text-muted-foreground mt-3 text-pretty text-sm leading-relaxed md:text-base">
-                Diseñado para cuadrillas, talleres y empresas que viven de visitas, presupuestos
-                y registro de pagos alineado al trabajo realizado.
+                Pensado para equipos que necesitan una sola fuente de verdad: qué se ofreció, qué se
+                programó, qué se hizo y qué quedó cobrado o pendiente.
               </p>
             </div>
 
@@ -262,7 +261,7 @@ export default function HomePage() {
               Cómo funciona
             </h2>
             <p className="text-muted-foreground mt-3 text-sm leading-relaxed md:text-base">
-              Tres pasos para pasar del desorden a un flujo que el equipo puede seguir.
+              Tres pasos para dejar de depender de mensajes sueltos y llevar la operación con criterio.
             </p>
           </div>
 
@@ -309,7 +308,8 @@ export default function HomePage() {
               ¿Listo para ordenar tu operación?
             </h2>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed md:text-base">
-              Entra con tu equipo y lleva clientes, cotizaciones, documentos y órdenes al mismo ritmo.
+              Entra con tu equipo y mantén clientes, cotizaciones, agenda, documentos y órdenes alineados
+              con lo que realmente pasó en terreno y en caja.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" className="h-11 rounded-xl px-8 shadow-lg shadow-primary/25" asChild>

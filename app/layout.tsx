@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s · Fluxen",
   },
   description:
-    "Plataforma para empresas de servicios técnicos: clientes, cotizaciones, agenda y órdenes hasta el pago.",
+    "Panel para cotizar, agendar, ejecutar órdenes y registrar pagos: clientes, documentos y equipo en un solo lugar, con datos separados por empresa.",
 };
 
 export default async function RootLayout({

@@ -77,6 +77,29 @@ export async function createCompany(
   return { ok: true, companyId: company.id };
 }
 
+function formText(formData: FormData, key: string): string {
+  const v = formData.get(key);
+  return typeof v === "string" ? v : "";
+}
+
+const optionalCompanyEmail = z
+  .string()
+  .trim()
+  .max(254)
+  .transform((s) => (s === "" ? null : s.toLowerCase()))
+  .refine((s) => s === null || z.string().email().safeParse(s).success, {
+    message: "Correo no válido",
+  });
+
+const optionalWebsite = z
+  .string()
+  .trim()
+  .max(500)
+  .transform((s) => (s === "" ? null : s))
+  .refine((s) => s === null || z.string().url().safeParse(s).success, {
+    message: "URL no válida (usa http:// o https://)",
+  });
+
 const updateSchema = z.object({
   name: z.string().trim().min(2, "Mínimo 2 caracteres").max(80, "Máximo 80 caracteres"),
   quoteCodePrefix: z
@@ -90,6 +113,15 @@ const updateSchema = z.object({
     .int()
     .min(3, "Mínimo 3 cifras")
     .max(10, "Máximo 10 cifras"),
+  address: z.string().trim().max(5000).transform((s) => (s === "" ? null : s)),
+  phone: z.string().trim().max(50).transform((s) => (s === "" ? null : s)),
+  legalRepresentative: z.string().trim().max(200).transform((s) => (s === "" ? null : s)),
+  companyEmail: optionalCompanyEmail,
+  website: optionalWebsite,
+  city: z.string().trim().max(120).transform((s) => (s === "" ? null : s)),
+  country: z.string().trim().max(100).transform((s) => (s === "" ? null : s)),
+  rut: z.string().trim().max(20).transform((s) => (s === "" ? null : s)),
+  businessName: z.string().trim().max(200).transform((s) => (s === "" ? null : s)),
 });
 
 export async function updateActiveCompany(
@@ -110,9 +142,18 @@ export async function updateActiveCompany(
   }
 
   const parsed = updateSchema.safeParse({
-    name: formData.get("name"),
-    quoteCodePrefix: formData.get("quoteCodePrefix"),
-    quoteCodePadding: formData.get("quoteCodePadding"),
+    name: formText(formData, "name"),
+    quoteCodePrefix: formText(formData, "quoteCodePrefix"),
+    quoteCodePadding: formText(formData, "quoteCodePadding"),
+    address: formText(formData, "address"),
+    phone: formText(formData, "phone"),
+    legalRepresentative: formText(formData, "legalRepresentative"),
+    companyEmail: formText(formData, "companyEmail"),
+    website: formText(formData, "website"),
+    city: formText(formData, "city"),
+    country: formText(formData, "country"),
+    rut: formText(formData, "rut"),
+    businessName: formText(formData, "businessName"),
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
@@ -134,6 +175,15 @@ export async function updateActiveCompany(
       slug,
       quoteCodePrefix: parsed.data.quoteCodePrefix,
       quoteCodePadding: parsed.data.quoteCodePadding,
+      address: parsed.data.address,
+      phone: parsed.data.phone,
+      legalRepresentative: parsed.data.legalRepresentative,
+      email: parsed.data.companyEmail,
+      website: parsed.data.website,
+      city: parsed.data.city,
+      country: parsed.data.country,
+      rut: parsed.data.rut,
+      businessName: parsed.data.businessName,
     },
   });
 

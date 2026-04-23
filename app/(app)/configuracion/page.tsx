@@ -28,6 +28,15 @@ export default async function ConfiguracionPage() {
             slug: true,
             quoteCodePrefix: true,
             quoteCodePadding: true,
+            address: true,
+            phone: true,
+            legalRepresentative: true,
+            email: true,
+            website: true,
+            city: true,
+            country: true,
+            rut: true,
+            businessName: true,
           },
         })
       : null;
@@ -45,6 +54,17 @@ export default async function ConfiguracionPage() {
           companySlug={activeCompany.slug}
           quoteCodePrefix={activeCompany.quoteCodePrefix}
           quoteCodePadding={activeCompany.quoteCodePadding}
+          profile={{
+            address: activeCompany.address,
+            phone: activeCompany.phone,
+            legalRepresentative: activeCompany.legalRepresentative,
+            email: activeCompany.email,
+            website: activeCompany.website,
+            city: activeCompany.city,
+            country: activeCompany.country,
+            rut: activeCompany.rut,
+            businessName: activeCompany.businessName,
+          }}
         />
       ) : role === CompanyRole.OWNER && activeId && !activeCompany ? (
         <p className="text-destructive text-sm" role="alert">

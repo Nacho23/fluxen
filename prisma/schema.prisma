@@ -171,6 +171,16 @@ model Company {
   lastQuoteSequence Int      @default(0)
   /// Permisos por rol y módulo (lectura/alta/edición/baja). null = valores por defecto de la app.
   rolePermissions   Json?
+  /// Ficha opcional de la empresa (solo se edita en Configuración).
+  address             String? @db.Text
+  phone               String?
+  legalRepresentative String?
+  email               String?
+  website             String?
+  city                String?
+  country             String?
+  rut                 String?
+  businessName        String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   members    CompanyMember[]
