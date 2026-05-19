@@ -109,6 +109,7 @@ export default async function AgendaPage({
   }));
 
   const monthLabel = monthLabelFmt.format(new Date(year, monthIndex, 1));
+  const todayKey = formatDateKeyLocal(now);
 
   return (
     <div className="space-y-8">
@@ -131,7 +132,7 @@ export default async function AgendaPage({
         monthLabel={monthLabel}
       />
 
-      <AgendaMonthGrid cells={cellsSerialized} placement={placement} />
+      <AgendaMonthGrid cells={cellsSerialized} placement={placement} todayKey={todayKey} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ClientFormModal } from "@/components/clientes/client-form-modal";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { CLIENT_KIND_LABEL } from "@/lib/data/client-kind";
 import type { ClientRow } from "@/lib/data/company-clients";
@@ -60,14 +61,18 @@ export function ClientsPanel({
 
   return (
     <div className="space-y-8">
-      {canCreate ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" className="gap-2" onClick={openCreate}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          title="Clientes"
+          description="Personas u organizaciones con las que cotizas. Los datos se reutilizan al generar cotizaciones."
+        />
+        {canCreate ? (
+          <Button type="button" className="w-fit shrink-0 gap-2" onClick={openCreate}>
             <UserPlus className="size-4" aria-hidden />
             Nuevo cliente
           </Button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <ClientFormModal
         open={modalOpen}

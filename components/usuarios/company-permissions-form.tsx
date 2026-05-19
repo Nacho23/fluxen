@@ -42,7 +42,7 @@ export function CompanyPermissionsForm({
       const cell = { ...prev[role][res] } as CrudFlags;
       const nextOn = !cell[action];
       cell[action] = nextOn;
-      if (res === "pagos") {
+      if (res === "pagos" || res === "ordenes") {
         if (action === "read" && !nextOn) {
           cell.readAll = false;
         }
@@ -60,16 +60,16 @@ export function CompanyPermissionsForm({
     });
   }
 
-  function togglePagosReadAll(role: EditableCompanyRole) {
+  function toggleReadAll(role: EditableCompanyRole, res: "pagos" | "ordenes") {
     setMatrix((prev) => {
-      const pagos = { ...prev[role].pagos } as CrudFlags;
-      if (!pagos.read) return prev;
-      const cur = pagos.readAll !== false;
+      const cell = { ...prev[role][res] } as CrudFlags;
+      if (!cell.read) return prev;
+      const cur = cell.readAll !== false;
       return {
         ...prev,
         [role]: {
           ...prev[role],
-          pagos: { ...pagos, readAll: !cur },
+          [res]: { ...cell, readAll: !cur },
         },
       };
     });
@@ -143,25 +143,24 @@ export function CompanyPermissionsForm({
                         );
                       })}
                       {res === "pagos" ? (
-                        <label
-                          className={cn(
-                            "flex cursor-pointer items-start gap-2 rounded-md px-1 py-0.5 transition-colors",
-                            matrix[role].pagos.read && matrix[role].pagos.readAll !== false
-                              ? "bg-primary/10"
-                              : "hover:bg-muted/60",
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={matrix[role].pagos.read && matrix[role].pagos.readAll !== false}
-                            disabled={pending || !matrix[role].pagos.read}
-                            onChange={() => togglePagosReadAll(role)}
-                            className="border-input mt-0.5 size-3.5 shrink-0 rounded"
-                          />
-                          <span className="text-muted-foreground leading-snug">
-                            Ver todos los pagos de la empresa
-                          </span>
-                        </label>
+                        <ReadAllToggle
+                          role={role}
+                          resource="pagos"
+                          label="Ver todos los pagos de la empresa"
+                          matrix={matrix}
+                          pending={pending}
+                          onToggle={() => toggleReadAll(role, "pagos")}
+                        />
+                      ) : null}
+                      {res === "ordenes" ? (
+                        <ReadAllToggle
+                          role={role}
+                          resource="ordenes"
+                          label="Ver todas las órdenes de la empresa"
+                          matrix={matrix}
+                          pending={pending}
+                          onToggle={() => toggleReadAll(role, "ordenes")}
+                        />
                       ) : null}
                     </div>
                   </td>
@@ -182,5 +181,40 @@ export function CompanyPermissionsForm({
         </p>
       </div>
     </form>
+  );
+}
+
+function ReadAllToggle({
+  role,
+  resource,
+  label,
+  matrix,
+  pending,
+  onToggle,
+}: {
+  role: EditableCompanyRole;
+  resource: "pagos" | "ordenes";
+  label: string;
+  matrix: EditableMatrix;
+  pending: boolean;
+  onToggle: () => void;
+}) {
+  const cell = matrix[role][resource];
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-start gap-2 rounded-md px-1 py-0.5 transition-colors",
+        cell.read && cell.readAll !== false ? "bg-primary/10" : "hover:bg-muted/60",
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={cell.read && cell.readAll !== false}
+        disabled={pending || !cell.read}
+        onChange={onToggle}
+        className="border-input mt-0.5 size-3.5 shrink-0 rounded"
+      />
+      <span className="text-muted-foreground leading-snug">{label}</span>
+    </label>
   );
 }

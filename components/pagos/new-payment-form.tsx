@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CompanyMemberOption } from "@/lib/data/payments";
+import type { WorkOrderPaymentOption } from "@/lib/data/work-orders";
+import { WORK_ORDER_STATUS_LABEL } from "@/lib/data/work-order-status";
 import { PAYMENT_METHOD_LABEL } from "@/lib/data/payment-method";
 import type { PaymentMethod } from "@/lib/prisma/enums-public";
 import { createPayment } from "@/server/actions/payments";
@@ -24,8 +26,12 @@ function parseMoney(raw: string): number | null {
 
 export function NewPaymentForm({
   members,
+  workOrders = [],
+  initialWorkOrderId = "",
 }: Readonly<{
   members: CompanyMemberOption[];
+  workOrders?: WorkOrderPaymentOption[];
+  initialWorkOrderId?: string;
 }>) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -38,6 +44,7 @@ export function NewPaymentForm({
   const [amountStr, setAmountStr] = useState("");
   const [tipStr, setTipStr] = useState("");
   const [transactionCode, setTransactionCode] = useState("");
+  const [workOrderId, setWorkOrderId] = useState(initialWorkOrderId);
 
   const totals = useMemo(() => {
     const amount = parseMoney(amountStr);
@@ -69,6 +76,7 @@ export function NewPaymentForm({
         amount,
         tip,
         transactionCode: transactionCode.trim() || null,
+        workOrderId: workOrderId.trim() || null,
       });
       if (!res.ok) {
         setError(res.error);
@@ -185,6 +193,25 @@ export function NewPaymentForm({
             : "—"}
         </span>
       </div>
+
+      {workOrders.length > 0 ? (
+        <div className="space-y-2">
+          <Label htmlFor="workOrder">Orden de trabajo (opcional)</Label>
+          <select
+            id="workOrder"
+            value={workOrderId}
+            onChange={(ev) => setWorkOrderId(ev.target.value)}
+            className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            <option value="">Ninguna</option>
+            {workOrders.map((wo) => (
+              <option key={wo.id} value={wo.id}>
+                {wo.orderNumber} — {wo.title} ({WORK_ORDER_STATUS_LABEL[wo.status]})
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <Label htmlFor="tx">Código de transacción (opcional)</Label>

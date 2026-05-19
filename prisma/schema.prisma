@@ -60,6 +60,7 @@ enum ClientKind {
 enum AgendaEventSource {
   MANUAL
   QUOTATION
+  WORK_ORDER
 }
 
 enum AgendaAttendanceStatus {
@@ -78,6 +79,16 @@ enum SidebarPanelStyle {
 enum PaymentStatus {
   PENDING_SIGNATURE
   SIGNED
+}
+
+/// Ciclo de vida de una orden de trabajo.
+enum WorkOrderStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  RESCHEDULED
+  COMPLETED
+  CANCELLED
 }
 
 model User {
@@ -107,6 +118,10 @@ model User {
   agendaEventsCreated   AgendaEvent[]           @relation("AgendaEventCreator")
   agendaAttendances     AgendaAttendance[]
   inAppNotifications    InAppNotification[]
+  workOrdersCreated     WorkOrder[]              @relation("WorkOrderCreator")
+  workOrdersAssigned    WorkOrder[]              @relation("WorkOrderAssignee")
+  workOrderStatusChanges WorkOrderStatusChange[] @relation("WorkOrderStatusChanger")
+  workOrderStatusAssignees WorkOrderStatusChange[] @relation("WorkOrderStatusAssignee")
 }
 
 /// Carpeta lógica; permisos por carpeta (autor + banderas, como documentos) + matriz por rol.
@@ -176,6 +191,10 @@ model Company {
   /// Ancho del número (relleno con ceros)
   quoteCodePadding  Int      @default(5)
   lastQuoteSequence Int      @default(0)
+  /// Prefijo para N° de orden de trabajo (ej. OT → OT-00001)
+  workOrderCodePrefix   String   @default("OT")
+  workOrderCodePadding  Int      @default(5)
+  lastWorkOrderSequence Int      @default(0)
   /// Permisos por rol y módulo (lectura/alta/edición/baja). null = valores por defecto de la app.
   rolePermissions   Json?
   /// Ficha opcional de la empresa (solo se edita en Configuración).
@@ -213,6 +232,7 @@ model Company {
   agendaEvents AgendaEvent[]
   quotationCustomFields QuotationCustomField[]
   inAppNotifications      InAppNotification[]
+  workOrders              WorkOrder[]
 }
 
 /// Notificación en el panel (empresa activa + usuario destino).
@@ -307,6 +327,7 @@ model Quotation {
   client         CompanyClient?    @relation(fields: [clientId], references: [id], onDelete: Restrict)
   lines          QuotationLine[]
   agendaEvent    AgendaEvent?
+  workOrder      WorkOrder?
 
   @@unique([companyId, quoteNumber])
   @@index([companyId])
@@ -368,6 +389,7 @@ model AgendaEvent {
   createdBy  User               @relation("AgendaEventCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   quotation  Quotation?         @relation(fields: [quotationId], references: [id], onDelete: SetNull)
   attendees  AgendaAttendance[]
+  workOrder  WorkOrder?
 
   @@index([companyId, startAt])
 }
@@ -407,6 +429,8 @@ model Payment {
   status                PaymentStatus  @default(PENDING_SIGNATURE)
   signedAt              DateTime?
   signedByUserId        String?
+  /// Orden de trabajo asociada al pago (opcional).
+  workOrderId           String?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -414,10 +438,65 @@ model Payment {
   worker     User    @relation("PaymentWorker", fields: [workerUserId], references: [id], onDelete: Restrict)
   recordedBy User    @relation("PaymentRecordedBy", fields: [recordedByUserId], references: [id], onDelete: Restrict)
   signedBy   User?   @relation("PaymentSignedBy", fields: [signedByUserId], references: [id], onDelete: SetNull)
+  workOrder  WorkOrder? @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
   @@index([workerUserId])
   @@index([companyId, status])
+  @@index([workOrderId])
+}
+
+/// Orden de trabajo: puede vincularse opcionalmente a un evento de agenda y/o cotización.
+model WorkOrder {
+  id               String          @id @default(cuid())
+  companyId        String
+  orderNumber      String
+  sequence         Int
+  title            String
+  description      String?         @db.Text
+  status           WorkOrderStatus @default(PENDING)
+  /// Trabajador asignado (opcional).
+  assignedUserId   String?
+  /// Evento de agenda / trabajo programado (opcional).
+  agendaEventId    String?         @unique
+  /// Cotización de origen (opcional).
+  quotationId      String?         @unique
+  scheduledAt      DateTime?
+  completedAt      DateTime?
+  createdByUserId  String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  company      Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignedTo   User?                   @relation("WorkOrderAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  agendaEvent  AgendaEvent?            @relation(fields: [agendaEventId], references: [id], onDelete: SetNull)
+  quotation    Quotation?              @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  createdBy    User                    @relation("WorkOrderCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  statusHistory WorkOrderStatusChange[]
+  payments     Payment[]
+
+  @@unique([companyId, orderNumber])
+  @@index([companyId])
+  @@index([companyId, status])
+  @@index([assignedUserId])
+}
+
+/// Historial de cambios de estado y asignaciones de una orden.
+model WorkOrderStatusChange {
+  id               String           @id @default(cuid())
+  workOrderId      String
+  fromStatus       WorkOrderStatus?
+  toStatus         WorkOrderStatus
+  assignedUserId   String?
+  note             String?          @db.Text
+  changedByUserId  String
+  createdAt        DateTime         @default(now())
+
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  assignedTo   User?     @relation("WorkOrderStatusAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  changedBy    User      @relation("WorkOrderStatusChanger", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([workOrderId, createdAt])
 }
 
 model CompanyMember {

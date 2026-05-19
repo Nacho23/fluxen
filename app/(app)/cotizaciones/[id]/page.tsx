@@ -55,7 +55,8 @@ export default async function CotizacionDetallePage({
   }
   await requirePermission(session, "cotizaciones", "read");
 
-  const canUpdateStatus = await sessionHasPermission(session, "cotizaciones", "update");
+  const canUpdate = await sessionHasPermission(session, "cotizaciones", "update");
+  const canUpdateStatus = canUpdate;
   const canReadAgenda = await sessionHasPermission(session, "agenda", "read");
 
   const { id } = await params;
@@ -94,6 +95,11 @@ export default async function CotizacionDetallePage({
           <Button variant="secondary" asChild>
             <Link href="/cotizaciones">Volver al listado</Link>
           </Button>
+          {canUpdate && q.status === "DRAFT" ? (
+            <Button variant="outline" asChild>
+              <Link href={`/cotizaciones/${q.id}/editar`}>Editar borrador</Link>
+            </Button>
+          ) : null}
           <Button asChild>
             <a href={pdfUrl} download={`cotizacion-${q.quoteNumber}.pdf`}>
               Descargar PDF

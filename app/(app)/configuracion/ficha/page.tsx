@@ -50,6 +50,8 @@ export default async function ConfiguracionFichaPage() {
         companySlug={company.slug}
         quoteCodePrefix={company.quoteCodePrefix}
         quoteCodePadding={company.quoteCodePadding}
+        workOrderCodePrefix={company.workOrderCodePrefix}
+        workOrderCodePadding={company.workOrderCodePadding}
         profile={{
           address: company.address,
           phone: company.phone,

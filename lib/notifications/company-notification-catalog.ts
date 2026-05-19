@@ -2,10 +2,13 @@
 export const NOTIFICATION_KEY_QUOTATION_EMAIL = "quotation_sent" as const;
 /** Clave: correo de bienvenida al invitar un usuario a la empresa. */
 export const NOTIFICATION_KEY_MEMBER_INVITE_EMAIL = "member_invite" as const;
+/** Clave: correo al asignar una orden de trabajo a un trabajador. */
+export const NOTIFICATION_KEY_WORK_ORDER_ASSIGNED_EMAIL = "work_order_assigned" as const;
 
 export type NotificationEmailKey =
   | typeof NOTIFICATION_KEY_QUOTATION_EMAIL
-  | typeof NOTIFICATION_KEY_MEMBER_INVITE_EMAIL;
+  | typeof NOTIFICATION_KEY_MEMBER_INVITE_EMAIL
+  | typeof NOTIFICATION_KEY_WORK_ORDER_ASSIGNED_EMAIL;
 
 export const NOTIFICATION_EMAIL_CATALOG: ReadonlyArray<{
   key: NotificationEmailKey;
@@ -24,16 +27,25 @@ export const NOTIFICATION_EMAIL_CATALOG: ReadonlyArray<{
     description:
       "Correo con usuario y contraseña inicial al añadir un miembro nuevo. Si lo desactivas, el alta sigue funcionando pero deberás comunicar las credenciales por otro canal.",
   },
+  {
+    key: NOTIFICATION_KEY_WORK_ORDER_ASSIGNED_EMAIL,
+    title: "Orden de trabajo asignada",
+    description:
+      "Correo al trabajador cuando se le asigna una orden de trabajo nueva o se le reasigna una existente.",
+  },
 ];
 
 /** Clave in-app: invitación / asignación a un evento de agenda. */
 export const IN_APP_KEY_AGENDA_INVITATION = "agenda_invitation" as const;
 /** Clave in-app: pago registrado pendiente de firma del trabajador. */
 export const IN_APP_KEY_PAYMENT_PENDING_SIGNATURE = "payment_pending_signature" as const;
+/** Clave in-app: orden de trabajo asignada a un trabajador. */
+export const IN_APP_KEY_WORK_ORDER_ASSIGNED = "work_order_assigned" as const;
 
 export type NotificationInAppKey =
   | typeof IN_APP_KEY_AGENDA_INVITATION
-  | typeof IN_APP_KEY_PAYMENT_PENDING_SIGNATURE;
+  | typeof IN_APP_KEY_PAYMENT_PENDING_SIGNATURE
+  | typeof IN_APP_KEY_WORK_ORDER_ASSIGNED;
 
 export const NOTIFICATION_IN_APP_CATALOG: ReadonlyArray<{
   key: NotificationInAppKey;
@@ -49,6 +61,11 @@ export const NOTIFICATION_IN_APP_CATALOG: ReadonlyArray<{
     key: IN_APP_KEY_PAYMENT_PENDING_SIGNATURE,
     title: "Pagos pendientes de firma",
     description: "Aviso cuando se registra un pago a tu nombre y debes confirmarlo.",
+  },
+  {
+    key: IN_APP_KEY_WORK_ORDER_ASSIGNED,
+    title: "Órdenes de trabajo asignadas",
+    description: "Aviso en el panel cuando te asignan o reasignan una orden de trabajo.",
   },
 ];
 
@@ -80,6 +97,10 @@ export function mergeEmailNotificationDefaults(json: unknown): Record<Notificati
     [NOTIFICATION_KEY_MEMBER_INVITE_EMAIL]: isEmailNotificationEnabled(
       json,
       NOTIFICATION_KEY_MEMBER_INVITE_EMAIL,
+    ),
+    [NOTIFICATION_KEY_WORK_ORDER_ASSIGNED_EMAIL]: isEmailNotificationEnabled(
+      json,
+      NOTIFICATION_KEY_WORK_ORDER_ASSIGNED_EMAIL,
     ),
   };
 }

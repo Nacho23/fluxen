@@ -18,7 +18,6 @@ import {
   roundMoney,
   snapQuantity,
 } from "@/lib/quotations/compute-totals";
-import { syncAgendaFromQuotationStatus } from "@/lib/agenda/sync-from-quotation";
 import { prisma } from "@/lib/db/prisma";
 import type { QuotationCustomFieldRow } from "@/lib/data/quotation-custom-fields-public";
 import { validateAndNormalizeCustomFieldValues } from "@/lib/quotations/custom-field-values";
@@ -209,6 +208,139 @@ export async function createQuotation(
   }
 }
 
+const updateQuotationSchema = createSchema.extend({
+  quotationId: z.string().min(1),
+});
+
+export async function updateQuotation(
+  input: unknown,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    const { companyId } = await requireCotizacionAction("update");
+    const parsed = updateQuotationSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+    }
+
+    const existing = await prisma.quotation.findFirst({
+      where: { id: parsed.data.quotationId, companyId },
+      select: { id: true, status: true },
+    });
+    if (!existing) {
+      return { ok: false, error: "Cotización no encontrada" };
+    }
+    if (existing.status !== "DRAFT") {
+      return { ok: false, error: "Solo se pueden editar cotizaciones en estado Borrador" };
+    }
+
+    const parts = parsed.data.serviceDate.split("-").map((x) => Number(x));
+    const [y, mo, d] = parts;
+    if (!y || !mo || !d || mo > 12 || d > 31) {
+      return { ok: false, error: "Fecha del servicio no válida" };
+    }
+    const serviceDate = new Date(Date.UTC(y, mo - 1, d));
+    if (Number.isNaN(serviceDate.getTime())) {
+      return { ok: false, error: "Fecha del servicio no válida" };
+    }
+
+    let discountMode = parsed.data.discountMode;
+    let discountValueNum = parsed.data.discountValue ?? null;
+    if (discountMode === "NONE") discountValueNum = null;
+    if (discountMode === "PERCENT" && discountValueNum != null && discountValueNum > 100) {
+      discountValueNum = 100;
+    }
+
+    const serviceIds = parsed.data.lines
+      .map((l) => l.serviceId)
+      .filter((sid): sid is string => sid != null && sid !== "");
+    if (serviceIds.length > 0) {
+      const count = await prisma.service.count({
+        where: { companyId, id: { in: [...new Set(serviceIds)] } },
+      });
+      if (count !== new Set(serviceIds).size) {
+        return { ok: false, error: "Un ítem del catálogo no pertenece a esta empresa" };
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const client = await tx.companyClient.findFirst({
+        where: { id: parsed.data.clientId, companyId },
+      });
+      if (!client) throw new Error("Cliente no encontrado o no pertenece a esta empresa");
+
+      const definitions = (await tx.quotationCustomField.findMany({
+        where: { companyId },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: { id: true, key: true, label: true, fieldType: true, required: true, sortOrder: true },
+      })) as QuotationCustomFieldRow[];
+
+      const customRes = validateAndNormalizeCustomFieldValues(
+        definitions,
+        parsed.data.customFieldValues,
+      );
+      if (!customRes.ok) throw new Error(customRes.error);
+
+      const lineTotals: Prisma.Decimal[] = [];
+      const lineCreates: Prisma.QuotationLineUncheckedCreateWithoutQuotationInput[] = [];
+
+      parsed.data.lines.forEach((line, index) => {
+        const unitPrice = roundMoney(new Prisma.Decimal(line.unitPrice));
+        const quantity = snapQuantity(new Prisma.Decimal(line.quantity));
+        const lt = lineTotal(unitPrice, quantity);
+        lineTotals.push(lt);
+        lineCreates.push({
+          serviceId: line.serviceId && line.serviceId !== "" ? line.serviceId : null,
+          name: line.name,
+          description: line.description?.trim() || null,
+          itemType: parseItemType(line.itemType),
+          unitPrice,
+          quantity,
+          lineTotal: lt,
+          sortOrder: index + 1,
+        });
+      });
+
+      const discountDec =
+        discountMode === "NONE" || discountValueNum == null || discountValueNum === 0
+          ? null
+          : roundMoney(new Prisma.Decimal(discountValueNum));
+
+      const { subtotal, discountAmount, total } = computeQuotationTotals(
+        lineTotals,
+        discountMode,
+        discountDec,
+      );
+
+      await tx.quotationLine.deleteMany({ where: { quotationId: existing.id } });
+      await tx.quotation.update({
+        where: { id: existing.id },
+        data: {
+          serviceDate,
+          clientId: client.id,
+          clientName: client.name,
+          clientEmail: client.email?.trim() || null,
+          clientPhone: client.phone?.trim() || null,
+          discountMode,
+          discountValue: discountDec,
+          subtotal,
+          discountAmount,
+          total,
+          customFieldValues: customRes.values as Prisma.InputJsonValue,
+          lines: { create: lineCreates },
+        },
+      });
+    });
+
+    revalidatePath("/cotizaciones");
+    revalidatePath(`/cotizaciones/${existing.id}`);
+    revalidatePath(`/cotizaciones/${existing.id}/editar`);
+    return { ok: true, id: existing.id };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error al actualizar la cotización";
+    return { ok: false, error: msg };
+  }
+}
+
 const updateStatusSchema = z.object({
   quotationId: z.string().min(1),
   status: z.enum(["ACCEPTED", "REJECTED"]),
@@ -220,7 +352,7 @@ export async function updateQuotationStatus(
   input: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const { companyId, session } = await requireCotizacionAction("update");
+    const { companyId } = await requireCotizacionAction("update");
     const parsed = updateStatusSchema.safeParse(input);
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
@@ -245,16 +377,8 @@ export async function updateQuotationStatus(
       data: { status: parsed.data.status },
     });
 
-    await syncAgendaFromQuotationStatus({
-      quotationId: parsed.data.quotationId,
-      companyId,
-      newStatus: parsed.data.status,
-      actorUserId: session.user.id,
-    });
-
     revalidatePath("/cotizaciones");
     revalidatePath(`/cotizaciones/${parsed.data.quotationId}`);
-    revalidatePath("/agenda");
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error al actualizar el estado";

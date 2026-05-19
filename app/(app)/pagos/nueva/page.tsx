@@ -6,8 +6,11 @@ import { PageHeader } from "@/components/layout/page-header";
 import { authOptions } from "@/lib/auth/options";
 import { requirePermission } from "@/lib/auth/check-permission";
 import { listCompanyMembersForPaymentSelect } from "@/lib/data/payments";
+import { listWorkOrdersForPaymentSelect } from "@/lib/data/work-orders";
 
-export default async function NuevaPagoPage() {
+type Props = Readonly<{ searchParams: Promise<{ orden?: string }> }>;
+
+export default async function NuevaPagoPage({ searchParams }: Props) {
   const session = await getServerSession(authOptions);
 
   if (!session?.activeCompanyId) {
@@ -15,7 +18,16 @@ export default async function NuevaPagoPage() {
   }
   await requirePermission(session, "pagos", "create");
 
-  const members = await listCompanyMembersForPaymentSelect(session.activeCompanyId);
+  const companyId = session.activeCompanyId;
+  const { orden } = await searchParams;
+
+  const [members, workOrders] = await Promise.all([
+    listCompanyMembersForPaymentSelect(companyId),
+    listWorkOrdersForPaymentSelect(companyId),
+  ]);
+
+  const initialWorkOrderId =
+    orden && workOrders.some((w) => w.id === orden) ? orden : "";
 
   return (
     <div className="space-y-8">
@@ -23,7 +35,11 @@ export default async function NuevaPagoPage() {
         title="Registrar pago"
         description="El trabajador debe ser usuario de la empresa. Podrá revisar el registro y confirmar recepción."
       />
-      <NewPaymentForm members={members} />
+      <NewPaymentForm
+        members={members}
+        workOrders={workOrders}
+        initialWorkOrderId={initialWorkOrderId}
+      />
     </div>
   );
 }

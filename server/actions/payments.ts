@@ -41,6 +41,7 @@ const createSchema = z.object({
   amount: z.number().nonnegative("El monto no puede ser negativo"),
   tip: z.number().nonnegative("La propina no puede ser negativa"),
   transactionCode: z.string().trim().max(200).optional().nullable(),
+  workOrderId: z.string().optional().nullable(),
 });
 
 export async function createPayment(
@@ -58,6 +59,20 @@ export async function createPayment(
 
     const { workerUserId, paymentMethod, activityDescription, amount, tip, transactionCode } =
       parsed.data;
+    const workOrderId = parsed.data.workOrderId?.trim() || null;
+
+    if (workOrderId) {
+      const wo = await prisma.workOrder.findFirst({
+        where: { id: workOrderId, companyId },
+        select: { id: true, status: true },
+      });
+      if (!wo) {
+        return { ok: false, error: "La orden de trabajo no existe en esta empresa" };
+      }
+      if (wo.status === "CANCELLED") {
+        return { ok: false, error: "No se puede vincular un pago a una orden cancelada" };
+      }
+    }
 
     const member = await prisma.companyMember.findUnique({
       where: {
@@ -102,6 +117,7 @@ export async function createPayment(
         tip: tipDec,
         total: totalDec,
         transactionCode: transactionCode?.trim() ? transactionCode.trim() : null,
+        workOrderId,
       },
       select: { id: true },
     });
@@ -122,6 +138,10 @@ export async function createPayment(
 
     revalidatePath("/pagos");
     revalidatePath(`/pagos/${row.id}`);
+    if (workOrderId) {
+      revalidatePath("/ordenes");
+      revalidatePath(`/ordenes/${workOrderId}`);
+    }
     return { ok: true, id: row.id };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error al crear el pago";

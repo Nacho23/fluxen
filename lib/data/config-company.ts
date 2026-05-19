@@ -6,6 +6,8 @@ const ownerConfigSelect = {
   slug: true,
   quoteCodePrefix: true,
   quoteCodePadding: true,
+  workOrderCodePrefix: true,
+  workOrderCodePadding: true,
   address: true,
   phone: true,
   legalRepresentative: true,

@@ -119,6 +119,17 @@ const updateSchema = z.object({
     .int()
     .min(3, "Mínimo 3 cifras")
     .max(10, "Máximo 10 cifras"),
+  workOrderCodePrefix: z
+    .string()
+    .trim()
+    .min(1, "Prefijo de orden requerido")
+    .max(20, "Máximo 20 caracteres")
+    .regex(/^[A-Za-z0-9_-]+$/, "Solo letras, números, guión o guión bajo"),
+  workOrderCodePadding: z.coerce
+    .number()
+    .int()
+    .min(3, "Mínimo 3 cifras")
+    .max(10, "Máximo 10 cifras"),
   address: z.string().trim().max(5000).transform((s) => (s === "" ? null : s)),
   phone: z.string().trim().max(50).transform((s) => (s === "" ? null : s)),
   legalRepresentative: z.string().trim().max(200).transform((s) => (s === "" ? null : s)),
@@ -151,6 +162,8 @@ export async function updateActiveCompany(
     name: formText(formData, "name"),
     quoteCodePrefix: formText(formData, "quoteCodePrefix"),
     quoteCodePadding: formText(formData, "quoteCodePadding"),
+    workOrderCodePrefix: formText(formData, "workOrderCodePrefix"),
+    workOrderCodePadding: formText(formData, "workOrderCodePadding"),
     address: formText(formData, "address"),
     phone: formText(formData, "phone"),
     legalRepresentative: formText(formData, "legalRepresentative"),
@@ -181,6 +194,8 @@ export async function updateActiveCompany(
       slug,
       quoteCodePrefix: parsed.data.quoteCodePrefix,
       quoteCodePadding: parsed.data.quoteCodePadding,
+      workOrderCodePrefix: parsed.data.workOrderCodePrefix,
+      workOrderCodePadding: parsed.data.workOrderCodePadding,
       address: parsed.data.address,
       phone: parsed.data.phone,
       legalRepresentative: parsed.data.legalRepresentative,
@@ -198,6 +213,7 @@ export async function updateActiveCompany(
   revalidatePath("/configuracion/ficha");
   revalidatePath("/configuracion/preferencias");
   revalidatePath("/cotizaciones");
+  revalidatePath("/ordenes");
   revalidatePath("/", "layout");
   return { ok: true };
 }

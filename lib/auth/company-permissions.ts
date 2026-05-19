@@ -27,8 +27,8 @@ export type CrudFlags = {
   update: boolean;
   delete: boolean;
   /**
-   * Solo aplica a `pagos` con `read`: si es `false`, el usuario solo ve pagos donde es trabajador
-   * o quien los registró; si es `true`, ve todos los de la empresa.
+   * Solo aplica a `pagos` / `ordenes` con `read`: si es `false`, el usuario solo ve registros
+   * propios o asignados; si es `true`, ve todos los de la empresa.
    */
   readAll?: boolean;
 };
@@ -71,7 +71,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       cotizaciones: F(),
       campos_cotizacion: F(),
       agenda: F(),
-      ordenes: F(),
+      ordenes: { ...F(), readAll: true },
       pagos: { ...F(), readAll: true },
       documentos: F(),
       configuracion: R(),
@@ -85,7 +85,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       cotizaciones: F(),
       campos_cotizacion: F(),
       agenda: F(),
-      ordenes: F(),
+      ordenes: { ...F(), readAll: true },
       pagos: { ...F(), readAll: true },
       documentos: F(),
       configuracion: R(),
@@ -99,7 +99,7 @@ export function getDefaultPermissionMatrix(): CompanyPermissionsMatrix {
       cotizaciones: Z(),
       campos_cotizacion: Z(),
       agenda: R(),
-      ordenes: R(),
+      ordenes: { read: true, create: false, update: true, delete: false, readAll: false },
       pagos: { ...R(), readAll: false },
       documentos: R(),
       configuracion: Z(),
@@ -148,6 +148,8 @@ export function mergeMatrixWithDefaults(
 
 /** Clave en el snapshot JWT: ver todos los pagos de la empresa (vs. solo propios / registrados por mí). */
 export const PAGOS_READ_ALL_KEY = "pagos:readAll" as const;
+/** Clave en el snapshot JWT: ver todas las órdenes de la empresa (vs. solo asignadas / creadas por mí). */
+export const ORDENES_READ_ALL_KEY = "ordenes:readAll" as const;
 
 export function permissionKey(resource: AppResource, action: PermissionAction): string {
   return `${resource}:${action}`;
@@ -158,6 +160,13 @@ export function permissionKey(resource: AppResource, action: PermissionAction): 
  * el resto con `read` se asume listado completo (comportamiento previo).
  */
 export function resolvePagosReadAll(flags: CrudFlags, role: CompanyRole): boolean {
+  if (!flags.read) return false;
+  if (typeof flags.readAll === "boolean") return flags.readAll;
+  if (role === CompanyRole.FIELD) return false;
+  return true;
+}
+
+export function resolveOrdenesReadAll(flags: CrudFlags, role: CompanyRole): boolean {
   if (!flags.read) return false;
   if (typeof flags.readAll === "boolean") return flags.readAll;
   if (role === CompanyRole.FIELD) return false;
@@ -190,6 +199,10 @@ export function flattenRoleToSnapshot(
     role === CompanyRole.OWNER
       ? true
       : resolvePagosReadAll(matrix[role].pagos, role);
+  out[ORDENES_READ_ALL_KEY] =
+    role === CompanyRole.OWNER
+      ? true
+      : resolveOrdenesReadAll(matrix[role].ordenes, role);
   return out;
 }
 

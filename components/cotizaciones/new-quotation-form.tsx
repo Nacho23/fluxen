@@ -17,7 +17,7 @@ import type { QuotationCustomFieldRow } from "@/lib/data/quotation-custom-fields
 import { SERVICE_ITEM_TYPE_LABEL } from "@/lib/data/service-item-type";
 import { previewLineTotal, previewQuotationTotals } from "@/lib/quotations/preview-totals";
 import { cn } from "@/lib/utils";
-import { createQuotation } from "@/server/actions/quotations";
+import { createQuotation, updateQuotation } from "@/server/actions/quotations";
 import { QuoteDiscountMode } from "@/lib/prisma/enums-public";
 
 const priceFmt = new Intl.NumberFormat("es-CL", {
@@ -93,35 +93,57 @@ function lineFromService(s: ServiceRow): DraftLine {
   };
 }
 
+export type QuotationFormInitialData = {
+  quotationId: string;
+  serviceDate: string;
+  clientId: string;
+  discountMode: QuoteDiscountMode;
+  discountValue: string;
+  lines: DraftLine[];
+  customValues: Record<string, string>;
+};
+
 export function NewQuotationForm({
   catalogServices,
   initialClients,
   canCreateClient,
   customFields,
+  initialData,
 }: Readonly<{
   catalogServices: ServiceRow[];
   initialClients: ClientRow[];
   canCreateClient: boolean;
   customFields: QuotationCustomFieldRow[];
+  initialData?: QuotationFormInitialData;
 }>) {
+  const isEditing = Boolean(initialData?.quotationId);
+
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [serviceDate, setServiceDate] = useState(todayLocalISO);
-  const [selectedClientId, setSelectedClientId] = useState("");
+  const [serviceDate, setServiceDate] = useState(() => initialData?.serviceDate ?? todayLocalISO());
+  const [selectedClientId, setSelectedClientId] = useState(() => initialData?.clientId ?? "");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [clientModalOpen, setClientModalOpen] = useState(false);
-  const [discountMode, setDiscountMode] = useState<QuoteDiscountMode>("NONE");
-  const [discountValue, setDiscountValue] = useState("");
-  const [lines, setLines] = useState<DraftLine[]>(() => [createEmptyLine("draft-line-0")]);
+  const [discountMode, setDiscountMode] = useState<QuoteDiscountMode>(
+    () => initialData?.discountMode ?? "NONE",
+  );
+  const [discountValue, setDiscountValue] = useState(() => initialData?.discountValue ?? "");
+  const [lines, setLines] = useState<DraftLine[]>(
+    () => initialData?.lines ?? [createEmptyLine("draft-line-0")],
+  );
 
-  const [customValues, setCustomValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(customFields.map((f) => [f.id, ""])),
+  const [customValues, setCustomValues] = useState<Record<string, string>>(
+    () =>
+      initialData?.customValues ??
+      Object.fromEntries(customFields.map((f) => [f.id, ""])),
   );
 
   const [catalogPick, setCatalogPick] = useState("");
+  const [catalogPickerOpen, setCatalogPickerOpen] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState("");
 
   const selectedClient = useMemo(
     () => initialClients.find((c) => c.id === selectedClientId),
@@ -131,6 +153,21 @@ export function NewQuotationForm({
   const filteredClients = useMemo(
     () => initialClients.filter((c) => clientMatchesSearch(c, clientSearch)),
     [initialClients, clientSearch],
+  );
+
+  const filteredServices = useMemo(() => {
+    const q = catalogSearch.trim().toLowerCase();
+    if (!q) return catalogServices;
+    return catalogServices.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.description?.toLowerCase().includes(q) ?? false),
+    );
+  }, [catalogServices, catalogSearch]);
+
+  const selectedCatalogService = useMemo(
+    () => catalogServices.find((s) => s.id === catalogPick) ?? null,
+    [catalogServices, catalogPick],
   );
 
   const preview = useMemo(() => {
@@ -162,6 +199,7 @@ export function NewQuotationForm({
     if (!s) return;
     setLines((prev) => [...prev, lineFromService(s)]);
     setCatalogPick("");
+    setCatalogSearch("");
   }
 
   function removeLine(key: string) {
@@ -245,13 +283,23 @@ export function NewQuotationForm({
     };
 
     startTransition(async () => {
-      const res = await createQuotation(payload);
-      if (!res.ok) {
-        setError(res.error);
-        return;
+      if (isEditing && initialData?.quotationId) {
+        const res = await updateQuotation({ ...payload, quotationId: initialData.quotationId });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        router.push(`/cotizaciones/${initialData.quotationId}`);
+        router.refresh();
+      } else {
+        const res = await createQuotation(payload);
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        router.push(`/cotizaciones/${res.id}`);
+        router.refresh();
       }
-      router.push(`/cotizaciones/${res.id}`);
-      router.refresh();
     });
   }
 
@@ -503,22 +551,124 @@ export function NewQuotationForm({
 
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="grid flex-1 gap-1.5">
-            <Label htmlFor="catalog-pick">Añadir desde catálogo</Label>
-            <select
-              id="catalog-pick"
-              value={catalogPick}
-              onChange={(e) => setCatalogPick(e.target.value)}
-              className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm"
-            >
-              <option value="">Selecciona un servicio o producto…</option>
-              {catalogServices.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <Label htmlFor="catalog-pick-trigger">Añadir desde catálogo</Label>
+            {catalogServices.length > 0 ? (
+              <Popover.Root
+                open={catalogPickerOpen}
+                onOpenChange={(open) => {
+                  setCatalogPickerOpen(open);
+                  if (!open) setCatalogSearch("");
+                }}
+              >
+                <Popover.Trigger
+                  type="button"
+                  id="catalog-pick-trigger"
+                  aria-expanded={catalogPickerOpen}
+                  aria-haspopup="listbox"
+                  aria-controls="catalog-listbox-panel"
+                  className={cn(
+                    "border-input bg-background flex h-10 w-full items-center justify-between gap-2 rounded-lg border px-3 text-left text-sm outline-none transition-[color,box-shadow] select-none",
+                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                    !catalogPick && "text-muted-foreground",
+                  )}
+                >
+                  <span className="min-w-0 truncate">
+                    {selectedCatalogService ? selectedCatalogService.name : "Selecciona un servicio o producto…"}
+                  </span>
+                  <ChevronDown className="text-muted-foreground size-4 shrink-0 opacity-70" aria-hidden />
+                </Popover.Trigger>
+                <Popover.Portal>
+                  <Popover.Content
+                    align="start"
+                    sideOffset={4}
+                    className={cn(
+                      "border-border bg-popover text-popover-foreground z-50 max-h-[min(20rem,calc(100vh-6rem))] min-w-[var(--radix-popper-anchor-width)] overflow-hidden rounded-lg border p-0 shadow-md",
+                      "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+                    )}
+                    onOpenAutoFocus={(e) => {
+                      e.preventDefault();
+                      queueMicrotask(() => document.getElementById("catalogSearch")?.focus());
+                    }}
+                  >
+                    <div className="border-border border-b p-2">
+                      <Input
+                        id="catalogSearch"
+                        type="search"
+                        autoComplete="off"
+                        placeholder="Buscar por nombre o descripción…"
+                        value={catalogSearch}
+                        onChange={(e) => setCatalogSearch(e.target.value)}
+                        className="h-9"
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            e.stopPropagation();
+                            setCatalogPickerOpen(false);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div
+                      id="catalog-listbox-panel"
+                      role="listbox"
+                      aria-label="Catálogo"
+                      className="max-h-60 overflow-y-auto p-1"
+                    >
+                      {filteredServices.length === 0 ? (
+                        <p className="text-muted-foreground px-2 py-6 text-center text-xs">
+                          Sin coincidencias.
+                        </p>
+                      ) : (
+                        filteredServices.map((s) => {
+                          const selected = catalogPick === s.id;
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              role="option"
+                              aria-selected={selected}
+                              className={cn(
+                                "hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm",
+                                selected && "bg-accent text-accent-foreground",
+                              )}
+                              onClick={() => {
+                                setCatalogPick(s.id);
+                                setCatalogPickerOpen(false);
+                                setCatalogSearch("");
+                              }}
+                            >
+                              <Check
+                                className={cn("size-4 shrink-0", !selected && "invisible")}
+                                aria-hidden
+                              />
+                              <span className="min-w-0 flex-1 truncate">
+                                {s.name}
+                                {s.description ? (
+                                  <span className="text-muted-foreground ml-1.5 text-xs">
+                                    — {s.description}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </Popover.Content>
+                </Popover.Portal>
+              </Popover.Root>
+            ) : (
+              <div className="border-input bg-muted/40 text-muted-foreground flex h-10 w-full items-center rounded-lg border px-3 text-sm">
+                Sin servicios en el catálogo
+              </div>
+            )}
           </div>
-          <Button type="button" variant="secondary" className="w-full gap-2 sm:w-auto" onClick={addFromCatalog}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full gap-2 sm:w-auto"
+            disabled={!catalogPick}
+            onClick={addFromCatalog}
+          >
             <Plus className="size-4" aria-hidden />
             Insertar
           </Button>
@@ -684,12 +834,16 @@ export function NewQuotationForm({
               <Loader2 className="size-4 animate-spin" aria-hidden />
               Guardando…
             </>
+          ) : isEditing ? (
+            "Guardar cambios"
           ) : (
             "Generar cotización"
           )}
         </Button>
         <Button type="button" variant="secondary" asChild>
-          <Link href="/cotizaciones">Cancelar</Link>
+          <Link href={isEditing && initialData?.quotationId ? `/cotizaciones/${initialData.quotationId}` : "/cotizaciones"}>
+            Cancelar
+          </Link>
         </Button>
       </div>
     </form>

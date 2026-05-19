@@ -28,12 +28,16 @@ export function CompanyProfileEditPanel({
   companySlug,
   quoteCodePrefix,
   quoteCodePadding,
+  workOrderCodePrefix,
+  workOrderCodePadding,
   profile,
 }: Readonly<{
   companyName: string;
   companySlug: string;
   quoteCodePrefix: string;
   quoteCodePadding: number;
+  workOrderCodePrefix: string;
+  workOrderCodePadding: number;
   profile: CompanyProfileFields;
 }>) {
   const router = useRouter();
@@ -91,38 +95,79 @@ export function CompanyProfileEditPanel({
             Se actualiza al guardar el nombre si hace falta mantenerlo único.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="quoteCodePrefix">Prefijo N° cotización</Label>
-            <Input
-              id="quoteCodePrefix"
-              name="quoteCodePrefix"
-              required
-              maxLength={20}
-              defaultValue={quoteCodePrefix}
-              disabled={editPending}
-              placeholder="COT"
-              className="font-mono"
-            />
-            <p className="text-muted-foreground text-[0.7rem] leading-relaxed">
-              Se usa antes del guion (ej. COT → COT-00001).
-            </p>
+        <div className="space-y-3">
+          <h3 className="text-foreground text-sm font-semibold">Numeración de cotizaciones</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="quoteCodePrefix">Prefijo</Label>
+              <Input
+                id="quoteCodePrefix"
+                name="quoteCodePrefix"
+                required
+                maxLength={20}
+                defaultValue={quoteCodePrefix}
+                disabled={editPending}
+                placeholder="COT"
+                className="font-mono"
+              />
+              <p className="text-muted-foreground text-[0.7rem] leading-relaxed">
+                Ej. COT → COT-00001
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quoteCodePadding">Cifras del número</Label>
+              <Input
+                id="quoteCodePadding"
+                name="quoteCodePadding"
+                type="number"
+                required
+                min={3}
+                max={10}
+                defaultValue={quoteCodePadding}
+                disabled={editPending}
+              />
+              <p className="text-muted-foreground text-[0.7rem] leading-relaxed">
+                Relleno con ceros a la izquierda.
+              </p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="quoteCodePadding">Cifras del número</Label>
-            <Input
-              id="quoteCodePadding"
-              name="quoteCodePadding"
-              type="number"
-              required
-              min={3}
-              max={10}
-              defaultValue={quoteCodePadding}
-              disabled={editPending}
-            />
-            <p className="text-muted-foreground text-[0.7rem] leading-relaxed">
-              Relleno con ceros a la izquierda para el correlativo.
-            </p>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-foreground text-sm font-semibold">Numeración de órdenes de trabajo</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="workOrderCodePrefix">Prefijo</Label>
+              <Input
+                id="workOrderCodePrefix"
+                name="workOrderCodePrefix"
+                required
+                maxLength={20}
+                defaultValue={workOrderCodePrefix}
+                disabled={editPending}
+                placeholder="OT"
+                className="font-mono"
+              />
+              <p className="text-muted-foreground text-[0.7rem] leading-relaxed">
+                Ej. OT → OT-00001
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="workOrderCodePadding">Cifras del número</Label>
+              <Input
+                id="workOrderCodePadding"
+                name="workOrderCodePadding"
+                type="number"
+                required
+                min={3}
+                max={10}
+                defaultValue={workOrderCodePadding}
+                disabled={editPending}
+              />
+              <p className="text-muted-foreground text-[0.7rem] leading-relaxed">
+                Relleno con ceros a la izquierda.
+              </p>
+            </div>
           </div>
         </div>
 

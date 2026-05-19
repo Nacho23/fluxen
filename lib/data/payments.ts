@@ -16,6 +16,8 @@ const paymentListSelect = {
   status: true,
   signedAt: true,
   createdAt: true,
+  workOrderId: true,
+  workOrder: { select: { id: true, orderNumber: true, title: true } },
   worker: { select: { id: true, name: true, email: true } },
   recordedBy: { select: { id: true, name: true, email: true } },
 } satisfies Prisma.PaymentSelect;
@@ -32,6 +34,8 @@ export type PaymentListRow = {
   status: PaymentStatus;
   signedAt: Date | null;
   createdAt: Date;
+  workOrderId: string | null;
+  workOrder: { id: string; orderNumber: string; title: string } | null;
   worker: { id: string; name: string; email: string };
   recordedBy: { id: string; name: string; email: string };
 };
@@ -80,6 +84,7 @@ const paymentDetailArgs = {
     recordedBy: { select: { id: true, name: true, email: true } },
     signedBy: { select: { id: true, name: true, email: true } },
     company: { select: { name: true } },
+    workOrder: { select: { id: true, orderNumber: true, title: true, status: true } },
   },
 } satisfies Prisma.PaymentFindFirstArgs;
 

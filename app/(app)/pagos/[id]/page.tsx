@@ -155,6 +155,21 @@ export default async function PagoDetallePage({ params }: Props) {
               {payment.transactionCode?.trim() ? payment.transactionCode : "—"}
             </dd>
           </div>
+          {payment.workOrder ? (
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Orden de trabajo
+              </dt>
+              <dd className="text-foreground mt-1">
+                <Link
+                  href={`/ordenes/${payment.workOrder.id}`}
+                  className="text-primary font-medium underline"
+                >
+                  {payment.workOrder.orderNumber} — {payment.workOrder.title}
+                </Link>
+              </dd>
+            </div>
+          ) : null}
           {payment.status === "SIGNED" && payment.signedAt ? (
             <div className="sm:col-span-2">
               <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Firmado</dt>

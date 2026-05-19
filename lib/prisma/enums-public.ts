@@ -37,6 +37,7 @@ export type QuotationCustomFieldType =
 export const AgendaEventSource = {
   MANUAL: "MANUAL",
   QUOTATION: "QUOTATION",
+  WORK_ORDER: "WORK_ORDER",
 } as const;
 export type AgendaEventSource = (typeof AgendaEventSource)[keyof typeof AgendaEventSource];
 
@@ -71,6 +72,16 @@ export const PaymentStatus = {
   SIGNED: "SIGNED",
 } as const;
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+
+export const WorkOrderStatus = {
+  PENDING: "PENDING",
+  ASSIGNED: "ASSIGNED",
+  IN_PROGRESS: "IN_PROGRESS",
+  RESCHEDULED: "RESCHEDULED",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type WorkOrderStatus = (typeof WorkOrderStatus)[keyof typeof WorkOrderStatus];
 
 export const SidebarPanelStyle = {
   STANDARD: "STANDARD",
