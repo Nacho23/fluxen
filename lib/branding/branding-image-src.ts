@@ -3,7 +3,7 @@
  */
 export function brandingImageSrc(
   companyId: string,
-  kind: "cover" | "avatar",
+  kind: "cover" | "avatar" | "logo",
   hasR2: boolean,
   externalUrl: string | null | undefined,
 ): string | null {

@@ -1,15 +1,17 @@
 "use client";
 
-import { Loader2, Pencil } from "lucide-react";
+import { ImageIcon, Loader2, Pencil, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { BrandingImageUploadRow } from "@/components/configuracion/branding-image-upload-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { brandingImageSrc } from "@/lib/branding/branding-image-src";
 import { cn } from "@/lib/utils";
-import { updateActiveCompany } from "@/server/actions/company";
+import { removeCompanyLogo, updateActiveCompany } from "@/server/actions/company";
 
 type CompanyProfileFields = {
   address: string | null;
@@ -24,6 +26,7 @@ type CompanyProfileFields = {
 };
 
 export function CompanyProfileEditPanel({
+  companyId,
   companyName,
   companySlug,
   quoteCodePrefix,
@@ -31,7 +34,11 @@ export function CompanyProfileEditPanel({
   workOrderCodePrefix,
   workOrderCodePadding,
   profile,
+  storageR2Ready,
+  logoUrl,
+  logoHasR2,
 }: Readonly<{
+  companyId: string;
   companyName: string;
   companySlug: string;
   quoteCodePrefix: string;
@@ -39,11 +46,17 @@ export function CompanyProfileEditPanel({
   workOrderCodePrefix: string;
   workOrderCodePadding: number;
   profile: CompanyProfileFields;
+  storageR2Ready: boolean;
+  logoUrl: string | null;
+  logoHasR2: boolean;
 }>) {
   const router = useRouter();
   const { update } = useSession();
   const [editError, setEditError] = useState<string | null>(null);
   const [editPending, setEditPending] = useState(false);
+  const [removingLogo, setRemovingLogo] = useState(false);
+
+  const hasLogo = logoHasR2 || Boolean(logoUrl?.trim());
 
   async function onUpdate(formData: FormData) {
     setEditError(null);
@@ -61,6 +74,22 @@ export function CompanyProfileEditPanel({
     }
   }
 
+  async function afterLogoUpload() {
+    await update();
+    router.refresh();
+  }
+
+  async function onRemoveLogo() {
+    setRemovingLogo(true);
+    try {
+      await removeCompanyLogo();
+      await update();
+      router.refresh();
+    } finally {
+      setRemovingLogo(false);
+    }
+  }
+
   return (
     <section className="border-border bg-card/60 w-full max-w-2xl rounded-xl border p-5 shadow-sm">
       <div className="mb-4 flex items-start gap-3">
@@ -72,6 +101,50 @@ export function CompanyProfileEditPanel({
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
             Nombre, identificador en URL y datos comerciales. Solo editable por el propietario.
           </p>
+        </div>
+      </div>
+
+      <div className="border-border mb-5 space-y-3 border-b pb-5">
+        <h3 className="text-foreground text-sm font-semibold">Logo de la empresa</h3>
+        <div className="flex items-center gap-4">
+          <div className="border-border bg-muted flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border">
+            {brandingImageSrc(companyId, "logo", logoHasR2, logoUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brandingImageSrc(companyId, "logo", logoHasR2, logoUrl)!}
+                alt="Logo de la empresa"
+                className="size-full object-contain p-1"
+              />
+            ) : (
+              <ImageIcon className="text-muted-foreground size-7" aria-hidden />
+            )}
+          </div>
+          <div className="space-y-2">
+            <BrandingImageUploadRow
+              kind="logo"
+              label="el logo"
+              storageR2Ready={storageR2Ready}
+              disabled={removingLogo}
+              onUploaded={afterLogoUpload}
+            />
+            {hasLogo ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-destructive gap-1.5 px-2 text-xs"
+                disabled={removingLogo}
+                onClick={onRemoveLogo}
+              >
+                {removingLogo ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <X className="size-3.5" aria-hidden />
+                )}
+                Quitar logo
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
 

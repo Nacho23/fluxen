@@ -47,6 +47,7 @@ export default async function ConfiguracionPreferenciasPage() {
         description="Estilo del menú y del panel principal, imágenes de marca y opciones de apariencia para todos los miembros de la empresa."
       />
       <CompanyGeneralSettingsPanel
+        companyId={activeId}
         storageR2Ready={isR2Configured()}
         sidebarPanelStyle={company.sidebarPanelStyle}
         sidebarCoverUrl={company.sidebarCoverUrl}

@@ -9,6 +9,7 @@ import { authOptions } from "@/lib/auth/options";
 import { requirePermission } from "@/lib/auth/check-permission";
 import { getActiveCompanyRole } from "@/lib/auth/permissions";
 import { getActiveCompanyForOwnerConfig } from "@/lib/data/config-company";
+import { isR2Configured } from "@/lib/storage/r2";
 
 export default async function ConfiguracionFichaPage() {
   const session = await getServerSession(authOptions);
@@ -46,6 +47,7 @@ export default async function ConfiguracionFichaPage() {
         description="Nombre, identificador en URL, numeración de cotizaciones y datos comerciales de la empresa activa."
       />
       <CompanyProfileEditPanel
+        companyId={activeId}
         companyName={company.name}
         companySlug={company.slug}
         quoteCodePrefix={company.quoteCodePrefix}
@@ -63,6 +65,9 @@ export default async function ConfiguracionFichaPage() {
           rut: company.rut,
           businessName: company.businessName,
         }}
+        storageR2Ready={isR2Configured()}
+        logoUrl={company.logoUrl}
+        logoHasR2={Boolean(company.logoStorageKey)}
       />
     </div>
   );

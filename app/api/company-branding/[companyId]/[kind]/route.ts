@@ -56,7 +56,7 @@ export async function GET(
       return new NextResponse(null, { status: 403 });
     }
 
-    if (kind !== "cover" && kind !== "avatar") {
+    if (kind !== "cover" && kind !== "avatar" && kind !== "logo") {
       return new NextResponse(null, { status: 400 });
     }
 
@@ -67,6 +67,8 @@ export async function GET(
         sidebarAvatarStorageKey: true,
         sidebarCoverUrl: true,
         sidebarAvatarUrl: true,
+        logoStorageKey: true,
+        logoUrl: true,
       },
     });
 
@@ -75,9 +77,18 @@ export async function GET(
     }
 
     const key =
-      kind === "cover" ? company.sidebarCoverStorageKey : company.sidebarAvatarStorageKey;
+      kind === "cover"
+        ? company.sidebarCoverStorageKey
+        : kind === "avatar"
+          ? company.sidebarAvatarStorageKey
+          : company.logoStorageKey;
     if (!key) {
-      const raw = kind === "cover" ? company.sidebarCoverUrl : company.sidebarAvatarUrl;
+      const raw =
+        kind === "cover"
+          ? company.sidebarCoverUrl
+          : kind === "avatar"
+            ? company.sidebarAvatarUrl
+            : company.logoUrl;
       const fallback = safeExternalImageUrl(raw);
       if (fallback) {
         return NextResponse.redirect(fallback, 302);

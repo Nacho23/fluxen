@@ -1,18 +1,19 @@
 "use client";
 
-import { Loader2, SlidersHorizontal } from "lucide-react";
+import { ImageIcon, Loader2, SlidersHorizontal } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { BrandingImageUploadRow } from "@/components/configuracion/branding-image-upload-row";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { brandingImageSrc } from "@/lib/branding/branding-image-src";
 import { updateCompanySidebarSettings } from "@/server/actions/company";
 import type { SidebarPanelStyle } from "@/lib/prisma/enums-public";
 
 export function CompanyGeneralSettingsPanel({
+  companyId,
   storageR2Ready,
   sidebarPanelStyle,
   sidebarCoverUrl,
@@ -20,6 +21,7 @@ export function CompanyGeneralSettingsPanel({
   sidebarCoverHasR2,
   sidebarAvatarHasR2,
 }: Readonly<{
+  companyId: string;
   storageR2Ready: boolean;
   sidebarPanelStyle: SidebarPanelStyle;
   sidebarCoverUrl: string | null;
@@ -114,25 +116,53 @@ export function CompanyGeneralSettingsPanel({
         </fieldset>
 
         <div className="space-y-2">
-          <Label htmlFor="sidebarCoverUrl">Portada (banner)</Label>
-          <BrandingImageUploadRow
-            kind="cover"
-            label="la portada"
-            storageR2Ready={storageR2Ready}
-            disabled={sidebarPending}
-            onUploaded={afterBrandingUpload}
-          />
+          <Label>Portada (banner)</Label>
+          <div className="flex items-start gap-3">
+            {brandingImageSrc(companyId, "cover", sidebarCoverHasR2, sidebarCoverUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brandingImageSrc(companyId, "cover", sidebarCoverHasR2, sidebarCoverUrl)!}
+                alt="Portada actual"
+                className="border-border h-14 w-28 shrink-0 rounded-lg border object-cover"
+              />
+            ) : (
+              <div className="border-border bg-muted flex h-14 w-28 shrink-0 items-center justify-center rounded-lg border">
+                <ImageIcon className="text-muted-foreground size-5" aria-hidden />
+              </div>
+            )}
+            <BrandingImageUploadRow
+              kind="cover"
+              label="la portada"
+              storageR2Ready={storageR2Ready}
+              disabled={sidebarPending}
+              onUploaded={afterBrandingUpload}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="sidebarAvatarUrl">Logo o avatar</Label>
-          <BrandingImageUploadRow
-            kind="avatar"
-            label="el logo"
-            storageR2Ready={storageR2Ready}
-            disabled={sidebarPending}
-            onUploaded={afterBrandingUpload}
-          />
+          <Label>Avatar del menú lateral</Label>
+          <div className="flex items-center gap-3">
+            {brandingImageSrc(companyId, "avatar", sidebarAvatarHasR2, sidebarAvatarUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brandingImageSrc(companyId, "avatar", sidebarAvatarHasR2, sidebarAvatarUrl)!}
+                alt="Avatar actual"
+                className="border-border size-14 shrink-0 rounded-xl border object-cover"
+              />
+            ) : (
+              <div className="border-border bg-muted flex size-14 shrink-0 items-center justify-center rounded-xl border">
+                <ImageIcon className="text-muted-foreground size-5" aria-hidden />
+              </div>
+            )}
+            <BrandingImageUploadRow
+              kind="avatar"
+              label="el avatar"
+              storageR2Ready={storageR2Ready}
+              disabled={sidebarPending}
+              onUploaded={afterBrandingUpload}
+            />
+          </div>
         </div>
 
         {sidebarCoverHasR2 ||

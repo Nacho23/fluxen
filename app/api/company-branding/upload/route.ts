@@ -44,7 +44,8 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const kindRaw = formData.get("kind");
-    const kind = kindRaw === "cover" || kindRaw === "avatar" ? kindRaw : null;
+    const kind =
+      kindRaw === "cover" || kindRaw === "avatar" || kindRaw === "logo" ? kindRaw : null;
     if (!kind) {
       return NextResponse.json({ ok: false, error: "Tipo no válido" }, { status: 400 });
     }
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
       select: {
         sidebarCoverStorageKey: true,
         sidebarAvatarStorageKey: true,
+        logoStorageKey: true,
       },
     });
     if (!company) {
@@ -80,7 +82,11 @@ export async function POST(request: Request) {
     }
 
     const prevKey =
-      kind === "cover" ? company.sidebarCoverStorageKey : company.sidebarAvatarStorageKey;
+      kind === "cover"
+        ? company.sidebarCoverStorageKey
+        : kind === "avatar"
+          ? company.sidebarAvatarStorageKey
+          : company.logoStorageKey;
 
     const key = buildBrandingObjectKey(companyId, kind, file.name);
     assertBrandingKeyBelongsToCompany(key, companyId);
@@ -98,7 +104,9 @@ export async function POST(request: Request) {
     const data =
       kind === "cover"
         ? { sidebarCoverStorageKey: key, sidebarCoverUrl: null }
-        : { sidebarAvatarStorageKey: key, sidebarAvatarUrl: null };
+        : kind === "avatar"
+          ? { sidebarAvatarStorageKey: key, sidebarAvatarUrl: null }
+          : { logoStorageKey: key, logoUrl: null };
 
     await prisma.company.update({
       where: { id: companyId },
@@ -116,6 +124,7 @@ export async function POST(request: Request) {
 
     revalidatePath("/configuracion");
     revalidatePath("/configuracion/preferencias");
+    revalidatePath("/configuracion/ficha");
     revalidatePath("/dashboard");
     revalidatePath("/", "layout");
 

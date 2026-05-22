@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type Kind = "cover" | "avatar";
+type Kind = "cover" | "avatar" | "logo";
 
 export function BrandingImageUploadRow({
   kind,

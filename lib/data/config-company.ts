@@ -22,6 +22,8 @@ const ownerConfigSelect = {
   sidebarAvatarUrl: true,
   sidebarCoverStorageKey: true,
   sidebarAvatarStorageKey: true,
+  logoUrl: true,
+  logoStorageKey: true,
 } as const;
 
 export type OwnerCompanyConfig = NonNullable<

@@ -75,7 +75,7 @@ function brandingExtensionLower(filename: string): string {
 
 export function buildBrandingObjectKey(
   companyId: string,
-  kind: "cover" | "avatar",
+  kind: "cover" | "avatar" | "logo",
   originalFilename: string,
 ): string {
   const ext = brandingExtensionLower(originalFilename);

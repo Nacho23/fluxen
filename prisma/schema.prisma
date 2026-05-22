@@ -216,6 +216,10 @@ model Company {
   sidebarCoverStorageKey   String?
   /// Clave R2 del logo/avatar (si existe, tiene prioridad sobre `sidebarAvatarUrl`).
   sidebarAvatarStorageKey  String?
+  /// URL externa del logotipo oficial de la empresa (ficha).
+  logoUrl        String?
+  /// Clave R2 del logotipo (si existe, tiene prioridad sobre `logoUrl`).
+  logoStorageKey String?
   /// Preferencias de envío por correo por tipo de evento (claves de app; ausente = activo).
   notificationEmailEvents Json @default("{}")
   /// Preferencias futuras de notificaciones en la app (misma convención de claves).

@@ -368,3 +368,41 @@ export async function updateCompanySidebarSettings(
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+export async function removeCompanyLogo(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.activeCompanyId) {
+    return { ok: false, error: "No autorizado" };
+  }
+  const role = getActiveCompanyRole(session);
+  if (role !== CompanyRole.OWNER) {
+    return { ok: false, error: "Solo el propietario puede cambiar el logo" };
+  }
+
+  const companyId = session.activeCompanyId;
+  const current = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { logoStorageKey: true },
+  });
+  if (!current) return { ok: false, error: "Empresa no encontrada" };
+
+  if (current.logoStorageKey) {
+    try {
+      assertBrandingKeyBelongsToCompany(current.logoStorageKey, companyId);
+      await deleteObject(current.logoStorageKey);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: { logoStorageKey: null, logoUrl: null },
+  });
+
+  revalidatePath("/configuracion");
+  revalidatePath("/configuracion/ficha");
+  revalidatePath("/dashboard");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
