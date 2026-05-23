@@ -44,7 +44,7 @@ const quotationDetailInclude = {
   lines: { orderBy: [{ sortOrder: "asc" as const }, { id: "asc" as const }] },
   company: { select: { name: true as const } },
   /** Correo actual del cliente (la cotización guarda copia en `clientEmail`, que puede quedar vacía si luego se edita la ficha). */
-  client: { select: { email: true as const } },
+  client: { select: { email: true as const, notes: true as const } },
 } satisfies Prisma.QuotationInclude;
 
 type QuotationDetailPayload = Prisma.QuotationGetPayload<{
@@ -62,6 +62,14 @@ export function effectiveQuotationClientEmail(q: QuotationDetail): string | null
   const snap = q.clientEmail?.trim();
   if (snap) return snap;
   const live = q.client?.email?.trim();
+  return live && live.length > 0 ? live : null;
+}
+
+/** Notas para PDF: copia en la cotización, o si falta, las de la ficha del cliente vinculada. */
+export function effectiveQuotationClientNotes(q: QuotationDetail): string | null {
+  const snap = q.clientNotes?.trim();
+  if (snap) return snap;
+  const live = q.client?.notes?.trim();
   return live && live.length > 0 ? live : null;
 }
 

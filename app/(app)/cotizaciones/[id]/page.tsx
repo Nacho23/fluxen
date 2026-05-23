@@ -203,10 +203,19 @@ export default async function CotizacionDetallePage({
                 <dd className="tabular-nums">−{priceFmt.format(Number(q.discountAmount))}</dd>
               </div>
             ) : null}
+            {q.vatChargedSeparately && Number(q.vatAmount) > 0 ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">IVA (19%)</dt>
+                <dd className="tabular-nums">{priceFmt.format(Number(q.vatAmount))}</dd>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-4 text-base font-semibold">
               <dt>Total</dt>
               <dd className="text-primary tabular-nums">{priceFmt.format(Number(q.total))}</dd>
             </div>
+            {!q.vatChargedSeparately ? (
+              <p className="text-muted-foreground text-xs">IVA (19%) incluido en el total</p>
+            ) : null}
           </dl>
 
           {agendaEventId ? (

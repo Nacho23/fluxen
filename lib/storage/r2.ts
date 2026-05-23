@@ -118,6 +118,28 @@ export async function presignGetObjectInline(
   return getSignedUrl(client, cmd, { expiresIn: expiresInSeconds });
 }
 
+/** Lee el objeto completo (p. ej. logo para incrustar en PDF). */
+export async function getObjectBytes(key: string): Promise<{ body: Buffer; contentType: string }> {
+  const client = getClient();
+  const out = await client.send(
+    new GetObjectCommand({
+      Bucket: getBucket(),
+      Key: key,
+    }),
+  );
+  const stream = out.Body;
+  if (!stream) {
+    throw new Error("Objeto vacío");
+  }
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of stream as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk);
+  }
+  const body = Buffer.concat(chunks);
+  const contentType = out.ContentType?.trim() || "application/octet-stream";
+  return { body, contentType };
+}
+
 export async function headObjectMeta(key: string): Promise<{ contentLength: number; contentType: string }> {
   const client = getClient();
   const out = await client.send(

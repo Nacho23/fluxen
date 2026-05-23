@@ -9,6 +9,7 @@ import { CompanyRole } from "@/lib/prisma/enums-public";
 import { authOptions } from "@/lib/auth/options";
 import { getActiveCompanyRole } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
+import { defaultQuotationTemplateLayout } from "@/lib/quotations/template-schema";
 import {
   assertBrandingKeyBelongsToCompany,
   deleteObject,
@@ -65,12 +66,20 @@ export async function createCompany(
     slug = `${slug}-${Date.now().toString(36)}`;
   }
 
+  const defaultLayout = defaultQuotationTemplateLayout();
   const company = await prisma.company.create({
     data: {
       name: parsed.data.name,
       slug,
       members: {
         create: { userId: session.user.id, role: CompanyRole.OWNER },
+      },
+      quotationTemplates: {
+        create: {
+          name: "Formato principal",
+          isDefault: true,
+          layout: defaultLayout as object,
+        },
       },
     },
   });
@@ -79,6 +88,7 @@ export async function createCompany(
   revalidatePath("/configuracion");
   revalidatePath("/configuracion/ficha");
   revalidatePath("/configuracion/preferencias");
+  revalidatePath("/configuracion/cotizaciones-formato");
   revalidatePath("/", "layout");
   return { ok: true, companyId: company.id };
 }

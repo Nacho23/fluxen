@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth/options";
 import { prisma } from "@/lib/db/prisma";
 import {
   assertBrandingKeyBelongsToCompany,
+  getObjectBytes,
   isR2Configured,
   presignGetObjectInline,
 } from "@/lib/storage/r2";
@@ -30,19 +31,32 @@ function contentTypeFromKey(key: string): string {
   return "image/jpeg";
 }
 
+async function proxyExternalImage(url: string): Promise<NextResponse> {
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok) {
+    return new NextResponse(null, { status: 404 });
+  }
+  const contentType = res.headers.get("content-type") ?? "image/jpeg";
+  const body = new Uint8Array(await res.arrayBuffer());
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "private, max-age=300",
+    },
+  });
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ companyId: string; kind: string }> },
 ) {
   try {
-    if (!isR2Configured()) {
-      return new NextResponse(null, { status: 503 });
-    }
-
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id;
     const activeId = session?.activeCompanyId;
     const { companyId, kind } = await context.params;
+    const embed = new URL(request.url).searchParams.get("embed") === "1";
 
     if (!userId || !activeId || companyId !== activeId) {
       return new NextResponse(null, { status: 403 });
@@ -82,22 +96,43 @@ export async function GET(
         : kind === "avatar"
           ? company.sidebarAvatarStorageKey
           : company.logoStorageKey;
+
+    const rawExternal =
+      kind === "cover"
+        ? company.sidebarCoverUrl
+        : kind === "avatar"
+          ? company.sidebarAvatarUrl
+          : company.logoUrl;
+
     if (!key) {
-      const raw =
-        kind === "cover"
-          ? company.sidebarCoverUrl
-          : kind === "avatar"
-            ? company.sidebarAvatarUrl
-            : company.logoUrl;
-      const fallback = safeExternalImageUrl(raw);
-      if (fallback) {
-        return NextResponse.redirect(fallback, 302);
+      const fallback = safeExternalImageUrl(rawExternal);
+      if (!fallback) {
+        return new NextResponse(null, { status: 404 });
       }
-      return new NextResponse(null, { status: 404 });
+      if (embed) {
+        return proxyExternalImage(fallback);
+      }
+      return NextResponse.redirect(fallback, 302);
+    }
+
+    if (!isR2Configured()) {
+      return new NextResponse(null, { status: 503 });
     }
 
     assertBrandingKeyBelongsToCompany(key, companyId);
     const contentType = contentTypeFromKey(key);
+
+    if (embed) {
+      const { body } = await getObjectBytes(key);
+      return new NextResponse(new Uint8Array(body), {
+        status: 200,
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "private, max-age=300",
+        },
+      });
+    }
+
     const signed = await presignGetObjectInline(key, contentType);
     return NextResponse.redirect(signed, 302);
   } catch {

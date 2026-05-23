@@ -8,6 +8,7 @@ import { requirePermission, sessionHasPermission } from "@/lib/auth/check-permis
 import { getClientsForCompany } from "@/lib/data/company-clients";
 import { getActiveServicesForCompany } from "@/lib/data/company-services";
 import { listQuotationCustomFieldsForCompany } from "@/lib/data/quotation-custom-fields";
+import { listQuotationTemplatesForQuotationForm } from "@/lib/data/quotation-templates";
 
 export default async function NuevaCotizacionPage() {
   const session = await getServerSession(authOptions);
@@ -17,11 +18,13 @@ export default async function NuevaCotizacionPage() {
   }
   await requirePermission(session, "cotizaciones", "create");
 
-  const [catalogServices, clients, canCreateClient, customFields] = await Promise.all([
-    getActiveServicesForCompany(session.activeCompanyId),
-    getClientsForCompany(session.activeCompanyId),
+  const companyId = session.activeCompanyId;
+  const [catalogServices, clients, canCreateClient, customFields, templates] = await Promise.all([
+    getActiveServicesForCompany(companyId),
+    getClientsForCompany(companyId),
     sessionHasPermission(session, "clientes", "create"),
-    listQuotationCustomFieldsForCompany(session.activeCompanyId),
+    listQuotationCustomFieldsForCompany(companyId),
+    listQuotationTemplatesForQuotationForm(companyId),
   ]);
 
   return (
@@ -35,6 +38,7 @@ export default async function NuevaCotizacionPage() {
         initialClients={clients}
         canCreateClient={canCreateClient}
         customFields={customFields}
+        templates={templates}
       />
     </div>
   );

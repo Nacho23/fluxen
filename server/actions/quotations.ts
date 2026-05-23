@@ -46,8 +46,11 @@ const lineSchema = z.object({
 const createSchema = z.object({
   serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha no válida"),
   clientId: z.string().min(1, "Selecciona un cliente"),
+  title: z.string().trim().max(200).optional().nullable(),
+  templateId: z.string().optional().nullable(),
   discountMode: z.nativeEnum(QuoteDiscountMode),
   discountValue: z.number().nonnegative().nullable().optional(),
+  vatChargedSeparately: z.boolean().optional(),
   lines: z.array(lineSchema).min(1, "Añade al menos una línea"),
   customFieldValues: z.record(z.string(), z.string()).optional(),
 });
@@ -168,10 +171,12 @@ export async function createQuotation(
           ? null
           : roundMoney(new Prisma.Decimal(discountValueNum));
 
-      const { subtotal, discountAmount, total } = computeQuotationTotals(
+      const vatChargedSeparately = parsed.data.vatChargedSeparately ?? false;
+      const { subtotal, discountAmount, vatAmount, total } = computeQuotationTotals(
         lineTotals,
         discountMode,
         discountDec,
+        vatChargedSeparately,
       );
 
       const quotation = await tx.quotation.create({
@@ -184,8 +189,13 @@ export async function createQuotation(
           clientName: client.name,
           clientEmail: client.email?.trim() || null,
           clientPhone: client.phone?.trim() || null,
+          clientNotes: client.notes?.trim() || null,
+          title: parsed.data.title?.trim() || null,
+          templateId: parsed.data.templateId ?? null,
           discountMode,
           discountValue: discountDec,
+          vatChargedSeparately,
+          vatAmount,
           subtotal,
           discountAmount,
           total,
@@ -209,7 +219,7 @@ export async function createQuotation(
 }
 
 const updateQuotationSchema = createSchema.extend({
-  quotationId: z.string().min(1),
+  quotationId: z.string().min(1, "El ID de cotización es requerido"),
 });
 
 export async function updateQuotation(
@@ -305,10 +315,12 @@ export async function updateQuotation(
           ? null
           : roundMoney(new Prisma.Decimal(discountValueNum));
 
-      const { subtotal, discountAmount, total } = computeQuotationTotals(
+      const vatChargedSeparately = parsed.data.vatChargedSeparately ?? false;
+      const { subtotal, discountAmount, vatAmount, total } = computeQuotationTotals(
         lineTotals,
         discountMode,
         discountDec,
+        vatChargedSeparately,
       );
 
       await tx.quotationLine.deleteMany({ where: { quotationId: existing.id } });
@@ -320,8 +332,13 @@ export async function updateQuotation(
           clientName: client.name,
           clientEmail: client.email?.trim() || null,
           clientPhone: client.phone?.trim() || null,
+          clientNotes: client.notes?.trim() || null,
+          title: parsed.data.title?.trim() || null,
+          templateId: parsed.data.templateId ?? null,
           discountMode,
           discountValue: discountDec,
+          vatChargedSeparately,
+          vatAmount,
           subtotal,
           discountAmount,
           total,

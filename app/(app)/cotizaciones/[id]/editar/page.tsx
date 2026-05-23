@@ -8,6 +8,7 @@ import { requirePermission, sessionHasPermission } from "@/lib/auth/check-permis
 import { getClientsForCompany } from "@/lib/data/company-clients";
 import { getActiveServicesForCompany } from "@/lib/data/company-services";
 import { listQuotationCustomFieldsForCompany } from "@/lib/data/quotation-custom-fields";
+import { listQuotationTemplatesForQuotationForm } from "@/lib/data/quotation-templates";
 import { getQuotationForCompany } from "@/lib/data/quotations";
 import { parseStoredCustomFieldValues } from "@/lib/quotations/custom-field-values";
 import type { QuoteDiscountMode } from "@/lib/prisma/enums-public";
@@ -38,11 +39,12 @@ export default async function EditarCotizacionPage({ params }: Props) {
     redirect(`/cotizaciones/${id}`);
   }
 
-  const [catalogServices, clients, canCreateClient, customFields] = await Promise.all([
+  const [catalogServices, clients, canCreateClient, customFields, templates] = await Promise.all([
     getActiveServicesForCompany(companyId),
     getClientsForCompany(companyId),
     sessionHasPermission(session, "clientes", "create"),
     listQuotationCustomFieldsForCompany(companyId),
+    listQuotationTemplatesForQuotationForm(companyId),
   ]);
 
   const storedCustom = parseStoredCustomFieldValues(q.customFieldValues);
@@ -77,12 +79,16 @@ export default async function EditarCotizacionPage({ params }: Props) {
         initialClients={clients}
         canCreateClient={canCreateClient}
         customFields={customFields}
+        templates={templates}
         initialData={{
           quotationId: q.id,
           serviceDate: formatDateInput(q.serviceDate),
           clientId: q.clientId ?? "",
+          title: q.title ?? "",
+          templateId: q.templateId ?? null,
           discountMode: q.discountMode as QuoteDiscountMode,
           discountValue: discountValueStr,
+          vatChargedSeparately: q.vatChargedSeparately,
           lines: initialLines,
           customValues,
         }}

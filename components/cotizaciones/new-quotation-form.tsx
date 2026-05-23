@@ -97,10 +97,19 @@ export type QuotationFormInitialData = {
   quotationId: string;
   serviceDate: string;
   clientId: string;
+  title: string;
+  templateId: string | null;
   discountMode: QuoteDiscountMode;
   discountValue: string;
+  vatChargedSeparately: boolean;
   lines: DraftLine[];
   customValues: Record<string, string>;
+};
+
+export type TemplateSummary = {
+  id: string;
+  name: string;
+  isDefault: boolean;
 };
 
 export function NewQuotationForm({
@@ -109,12 +118,14 @@ export function NewQuotationForm({
   canCreateClient,
   customFields,
   initialData,
+  templates,
 }: Readonly<{
   catalogServices: ServiceRow[];
   initialClients: ClientRow[];
   canCreateClient: boolean;
   customFields: QuotationCustomFieldRow[];
   initialData?: QuotationFormInitialData;
+  templates?: TemplateSummary[];
 }>) {
   const isEditing = Boolean(initialData?.quotationId);
 
@@ -123,6 +134,18 @@ export function NewQuotationForm({
   const [error, setError] = useState<string | null>(null);
 
   const [serviceDate, setServiceDate] = useState(() => initialData?.serviceDate ?? todayLocalISO());
+  const [title, setTitle] = useState(() => initialData?.title ?? "");
+  const defaultTemplateId = templates?.find((t) => t.isDefault)?.id ?? templates?.[0]?.id ?? null;
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    () => initialData?.templateId ?? defaultTemplateId,
+  );
+  const effectiveTemplateId = useMemo(() => {
+    if (!templates?.length) return selectedTemplateId;
+    if (selectedTemplateId && templates.some((t) => t.id === selectedTemplateId)) {
+      return selectedTemplateId;
+    }
+    return defaultTemplateId;
+  }, [templates, selectedTemplateId, defaultTemplateId]);
   const [selectedClientId, setSelectedClientId] = useState(() => initialData?.clientId ?? "");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
@@ -131,6 +154,9 @@ export function NewQuotationForm({
     () => initialData?.discountMode ?? "NONE",
   );
   const [discountValue, setDiscountValue] = useState(() => initialData?.discountValue ?? "");
+  const [vatChargedSeparately, setVatChargedSeparately] = useState(
+    () => initialData?.vatChargedSeparately ?? false,
+  );
   const [lines, setLines] = useState<DraftLine[]>(
     () => initialData?.lines ?? [createEmptyLine("draft-line-0")],
   );
@@ -186,8 +212,8 @@ export function NewQuotationForm({
       const parsed = parseDecimalInput(discountValue);
       dv = parsed ?? 0;
     }
-    return previewQuotationTotals(lineTotals, discountMode, dv);
-  }, [lines, discountMode, discountValue]);
+    return previewQuotationTotals(lineTotals, discountMode, dv, vatChargedSeparately);
+  }, [lines, discountMode, discountValue, vatChargedSeparately]);
 
   function addEmptyLine() {
     setLines((prev) => [...prev, createEmptyLine()]);
@@ -269,9 +295,12 @@ export function NewQuotationForm({
 
     const payload = {
       serviceDate,
+      title: title.trim() || null,
+      templateId: effectiveTemplateId ?? null,
       clientId: selectedClientId.trim(),
       discountMode,
       discountValue: dv,
+      vatChargedSeparately,
       lines: parsedLines,
       ...(customFields.length > 0
         ? {
@@ -327,6 +356,42 @@ export function NewQuotationForm({
               onChange={(e) => setServiceDate(e.target.value)}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="quotationTitle">Título (opcional)</Label>
+            <Input
+              id="quotationTitle"
+              value={title}
+              maxLength={200}
+              placeholder="Ej. Mantenimiento preventivo Q2"
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <p className="text-muted-foreground text-[0.7rem]">
+              Se muestra debajo del número de cotización en el PDF.
+            </p>
+          </div>
+
+          {templates && templates.length > 0 ? (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="quotationTemplate">Formato del PDF</Label>
+              <select
+                id="quotationTemplate"
+                value={effectiveTemplateId ?? ""}
+                onChange={(e) => setSelectedTemplateId(e.target.value || null)}
+                className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm"
+              >
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                    {t.isDefault ? " (predeterminado)" : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-muted-foreground text-[0.7rem]">
+                Define el diseño del PDF de esta cotización. Puedes cambiarlo antes de guardar.
+              </p>
+            </div>
+          ) : null}
+
           <div className="space-y-1.5 sm:col-span-2">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
               <div className="grid min-w-0 flex-1 gap-1.5">
@@ -502,15 +567,21 @@ export function NewQuotationForm({
                   {f.required ? <span className="text-destructive"> *</span> : null}
                 </Label>
                 {f.fieldType === "TEXTAREA" ? (
-                  <textarea
-                    id={`cf-${f.id}`}
-                    required={f.required}
-                    rows={3}
-                    maxLength={5000}
-                    value={customValues[f.id] ?? ""}
-                    onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[4rem] w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                  />
+                  <>
+                    <textarea
+                      id={`cf-${f.id}`}
+                      required={f.required}
+                      rows={3}
+                      maxLength={5000}
+                      value={customValues[f.id] ?? ""}
+                      onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[4rem] w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    />
+                    <p className="text-muted-foreground text-[0.7rem]">
+                      En el PDF puedes usar listas con <code className="text-xs">-</code> o{" "}
+                      <code className="text-xs">1.</code> (indenta 2 espacios para sub-viñetas).
+                    </p>
+                  </>
                 ) : f.fieldType === "NUMBER" ? (
                   <Input
                     id={`cf-${f.id}`}
@@ -770,7 +841,7 @@ export function NewQuotationForm({
       </section>
 
       <section className="border-border bg-card/60 max-w-3xl rounded-xl border p-5 shadow-sm">
-        <h2 className="text-foreground mb-4 text-sm font-semibold">Descuento</h2>
+        <h2 className="text-foreground mb-4 text-sm font-semibold">Descuento e IVA</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="discountMode">Tipo</Label>
@@ -801,6 +872,22 @@ export function NewQuotationForm({
           ) : null}
         </div>
 
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 rounded border-input"
+            checked={vatChargedSeparately}
+            onChange={(e) => setVatChargedSeparately(e.target.checked)}
+          />
+          <span className="text-sm leading-snug">
+            <span className="text-foreground font-medium">IVA (19%) se cobra aparte</span>
+            <span className="text-muted-foreground mt-0.5 block text-xs">
+              Si no marcas esta opción, se asume que el 19% ya está incluido en los precios y en el
+              total.
+            </span>
+          </span>
+        </label>
+
         <div className="border-border mt-6 space-y-2 border-t pt-4">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
@@ -814,10 +901,19 @@ export function NewQuotationForm({
               </span>
             </div>
           ) : null}
+          {vatChargedSeparately && preview.vatAmount > 0 ? (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">IVA (19%)</span>
+              <span className="text-foreground tabular-nums">{priceFmt.format(preview.vatAmount)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between text-base font-semibold">
             <span>Total cotización</span>
             <span className="text-primary tabular-nums">{priceFmt.format(preview.total)}</span>
           </div>
+          {!vatChargedSeparately ? (
+            <p className="text-muted-foreground text-xs">IVA (19%) incluido en el total</p>
+          ) : null}
         </div>
       </section>
 

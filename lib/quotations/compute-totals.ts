@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import type { QuoteDiscountMode } from "@/lib/prisma/enums-public";
+import { QUOTATION_VAT_RATE } from "@/lib/quotations/vat";
 
 export function roundMoney(d: Prisma.Decimal): Prisma.Decimal {
   return new Prisma.Decimal(d.toFixed(2));
@@ -19,9 +20,11 @@ export function computeQuotationTotals(
   lineTotals: Prisma.Decimal[],
   discountMode: QuoteDiscountMode,
   discountValue: Prisma.Decimal | null,
+  vatChargedSeparately = false,
 ): {
   subtotal: Prisma.Decimal;
   discountAmount: Prisma.Decimal;
+  vatAmount: Prisma.Decimal;
   total: Prisma.Decimal;
 } {
   let subtotal = new Prisma.Decimal(0);
@@ -38,6 +41,13 @@ export function computeQuotationTotals(
     discountAmount = discountValue.gt(subtotal) ? subtotal : roundMoney(discountValue);
   }
 
-  const total = roundMoney(subtotal.sub(discountAmount));
-  return { subtotal, discountAmount, total };
+  const net = roundMoney(subtotal.sub(discountAmount));
+  let vatAmount = new Prisma.Decimal(0);
+  let total = net;
+  if (vatChargedSeparately) {
+    vatAmount = roundMoney(net.mul(QUOTATION_VAT_RATE));
+    total = roundMoney(net.add(vatAmount));
+  }
+
+  return { subtotal, discountAmount, vatAmount, total };
 }

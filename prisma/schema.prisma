@@ -235,8 +235,27 @@ model Company {
   clients    CompanyClient[]
   agendaEvents AgendaEvent[]
   quotationCustomFields QuotationCustomField[]
+  quotationTemplates    QuotationTemplate[]
   inAppNotifications      InAppNotification[]
   workOrders              WorkOrder[]
+}
+
+/// Layout del PDF de cotización por empresa (constructor visual). Una empresa puede tener varios.
+model QuotationTemplate {
+  id        String   @id @default(cuid())
+  companyId String
+  /// Nombre descriptivo del formato (ej. "Formato principal", "Formato minimalista").
+  name      String   @default("Formato principal")
+  /// Solo uno por empresa puede ser el predeterminado.
+  isDefault Boolean  @default(false)
+  layout    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quotations Quotation[]
+
+  @@index([companyId])
+  @@index([companyId, isDefault])
 }
 
 /// Notificación en el panel (empresa activa + usuario destino).
@@ -312,23 +331,33 @@ model Quotation {
   clientName     String
   clientEmail    String?
   clientPhone    String?
+  /// Copia de las notas del cliente al emitir la cotización.
+  clientNotes    String?           @db.Text
   discountMode   QuoteDiscountMode @default(NONE)
   /// Si PERCENT: 0–100. Si FIXED: monto en moneda. Si NONE: null.
   discountValue  Decimal?          @db.Decimal(12, 2)
   subtotal       Decimal           @db.Decimal(12, 2)
   discountAmount Decimal           @db.Decimal(12, 2)
+  /// Si true, el IVA 19% se suma al neto (después del descuento). Si false, el total ya lo incluye.
+  vatChargedSeparately Boolean       @default(false)
+  vatAmount            Decimal       @default(0) @db.Decimal(12, 2)
   total          Decimal           @db.Decimal(12, 2)
   status         QuotationStatus   @default(DRAFT)
   /// true cuando el PDF se envió por correo al menos una vez (Resend).
   emailSent      Boolean           @default(false)
   /// Fecha/hora del último envío por correo; null si nunca se envió.
   emailSentAt    DateTime?
+  /// Título opcional de la cotización (se muestra debajo del N° en el PDF).
+  title          String?
+  /// Formato PDF seleccionado al crear/editar. null = usar el predeterminado de la empresa.
+  templateId     String?
   /// Valores por id de `QuotationCustomField` (JSON objeto plano).
   customFieldValues Json              @default("{}")
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  client         CompanyClient?    @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  company        Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client         CompanyClient?     @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  template       QuotationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   lines          QuotationLine[]
   agendaEvent    AgendaEvent?
   workOrder      WorkOrder?
